@@ -61,7 +61,6 @@ public class MainActivity extends ActionBarActivity implements Camera.PreviewCal
         mHolder = surf.getHolder();
         mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
 
-
         mHolder.addCallback(new SurfaceHolder.Callback2(){
             @Override
             public void surfaceCreated(SurfaceHolder holder) {
@@ -159,6 +158,5 @@ public class MainActivity extends ActionBarActivity implements Camera.PreviewCal
         PutDataRequest request = PutDataRequest.create("/image");
         request.putAsset("profileImage", asset);
         Wearable.DataApi.putDataItem(mGoogleApiClient, request);
-
     }
 }
