@@ -32,6 +32,8 @@ public class ReceiverService extends WearableListenerService implements GoogleAp
                 .build();
     }
 
+
+
     @Override
     public void onMessageReceived(MessageEvent messageEvent) {
         super.onMessageReceived(messageEvent);

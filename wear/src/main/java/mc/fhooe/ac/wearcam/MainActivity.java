@@ -3,8 +3,10 @@ package mc.fhooe.ac.wearcam;
 import android.app.Activity;
 import android.os.Bundle;
 import android.support.wearable.view.WatchViewStub;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -20,6 +22,7 @@ public class MainActivity extends Activity  {
 
     private GoogleApiClient mGoogleApiClient;
     Button button;
+    public static ImageView imgView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,7 +42,7 @@ public class MainActivity extends Activity  {
                         onButtonClicked(v);
                     }
                 });
-
+                imgView =(ImageView) findViewById(R.id.surfaceViewWear);
             }
         });
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -68,4 +71,10 @@ public class MainActivity extends Activity  {
             }
         });
     }
+
+
+
+
+
+
 }
