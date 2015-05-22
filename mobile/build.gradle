@@ -5,7 +5,7 @@ android {
     buildToolsVersion "21.1.2"
 
     defaultConfig {
-        applicationId "mc.fhooe.ac.wearcam"
+        applicationId "mc.fhooe.at.wearcam"
         minSdkVersion 14
         targetSdkVersion 22
         versionCode 1

@@ -1,4 +1,4 @@
-package mc.fhooe.ac.wearcam;
+package mc.fhooe.at.wearcam;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;
