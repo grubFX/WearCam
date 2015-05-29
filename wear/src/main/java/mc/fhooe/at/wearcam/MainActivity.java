@@ -27,23 +27,24 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends Activity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, DataApi.DataListener {
-    private TextView mTextView;
     private ImageView mImageView;
     private GoogleApiClient mGoogleApiClient;
     private String TAG = "WearTAG";
     private static final int REQUEST_RESOLVE_ERROR = 1001;
     private boolean mResolvingError = false;
     private Uri uri;
+    private static final String START_ACTIVITY = "/start_activity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
         final WatchViewStub stub = (WatchViewStub) findViewById(R.id.watch_view_stub);
         stub.setOnLayoutInflatedListener(new WatchViewStub.OnLayoutInflatedListener() {
             @Override
             public void onLayoutInflated(WatchViewStub stub) {
-                mTextView = (TextView) stub.findViewById(R.id.text);
                 mImageView = (ImageView) stub.findViewById(R.id.imageView);
             }
         });
@@ -76,19 +77,6 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     @Override
     public void onConnected(Bundle bundle) {
         Log.d(TAG, "onConnected: " + bundle);
-        /*
-        if (uri != null) {
-            Wearable.DataApi.deleteDataItems(mGoogleApiClient, uri).setResultCallback(new ResultCallback<DataApi.DeleteDataItemsResult>() {
-                @Override
-                public void onResult(DataApi.DeleteDataItemsResult deleteDataItemsResult) {
-                    Log.d(TAG, "onResult of deleting dataItem: " + deleteDataItemsResult.getStatus());
-                    uri = null;
-                }
-            });
-        } else {
-            Log.w(TAG, "uri was null - could not delete");
-        }
-        */
     }
 
     @Override
@@ -148,25 +136,24 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     @Override
     public void onDataChanged(DataEventBuffer dataEvents) {
-        final List<DataEvent> events = FreezableUtils.freezeIterable(dataEvents);
-        dataEvents.close();
-        for (DataEvent event : events) {
+        //final List<DataEvent> events = FreezableUtils.freezeIterable(dataEvents);
+        //dataEvents.close();
+        for (DataEvent event : dataEvents) {
             if (event.getType() == DataEvent.TYPE_CHANGED) {
-                Log.d(TAG, "onDataChanged - TYPE_CHANGED");
-                uri = event.getDataItem().getUri();
-                String path = uri.getPath();
-                if ("/image".equals(path)) {
-                    DataMapItem item = DataMapItem.fromDataItem(event.getDataItem());
-                    Asset asset = item.getDataMap().getAsset("img");
-                    Bitmap bitmap = loadBitmapFromAsset(asset);
-                    if (bitmap != null) {
-                        reloadImageView(bitmap);
 
+                    Log.d(TAG, "onDataChanged - TYPE_CHANGED");
+                    uri = event.getDataItem().getUri();
+                    String path = uri.getPath();
+                    if ("/image".equals(path)) {
+                        DataMapItem item = DataMapItem.fromDataItem(event.getDataItem());
+                        Asset asset = item.getDataMap().getAsset("img");
+
+                        Bitmap bitmap = loadBitmapFromAsset(asset);
+                        if (bitmap != null) {
+                            reloadImageView(bitmap);
+                        }
                     }
-                }
 
-                mGoogleApiClient.reconnect();
-                Wearable.DataApi.addListener(mGoogleApiClient, this);
             } else if (event.getType() == DataEvent.TYPE_DELETED) {
                 Log.d(TAG, "onDataChanged - TYPE_DELETED");
             }
@@ -182,21 +169,18 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                 Log.d(TAG, "image was changed");
             }
         });
-
     }
 
     public Bitmap loadBitmapFromAsset(Asset asset) {
         if (asset == null) {
             throw new IllegalArgumentException("Asset must be non-null");
         }
-        ConnectionResult result =
-                mGoogleApiClient.blockingConnect(100, TimeUnit.MILLISECONDS);
-        if (!result.isSuccess()) {
+        //ConnectionResult result = mGoogleApiClient.blockingConnect(1000, TimeUnit.MILLISECONDS);
+        /*if (!result.isSuccess()) {
             return null;
-        }
+        }*/
         InputStream assetInputStream = Wearable.DataApi.getFdForAsset(
                 mGoogleApiClient, asset).await().getInputStream();
-        mGoogleApiClient.disconnect();
 
         if (assetInputStream == null) {
             Log.w(TAG, "Requested an unknown Asset.");
@@ -204,4 +188,6 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         }
         return BitmapFactory.decodeStream(assetInputStream);
     }
+
+
 }
