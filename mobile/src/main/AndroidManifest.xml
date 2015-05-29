@@ -4,6 +4,7 @@
 
 
     <uses-permission android:name="android.permission.CAMERA" />
+
     <uses-feature android:name="android.hardware.camera" />
     <uses-feature android:name="android.hardware.camera.autofocus" />
 
@@ -14,21 +15,14 @@
         android:theme="@style/AppTheme">
         <activity
             android:name="mc.fhooe.at.wearcam.MainActivity"
-            android:label="@string/app_name">
+            android:label="@string/app_name"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="com.google.android.gms.wearable.BIND_LISTENER" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
-
-            <service android:name=".WearMessageListenerService">
-                <intent-filter>
-                    <action android:name="com.google.android.gms.wearable.BIND_LISTENER" />
-                </intent-filter>
-            </service>
-
         </activity>
 
         <meta-data

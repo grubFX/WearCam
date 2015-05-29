@@ -9,43 +9,51 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.wearable.view.WatchViewStub;
 import android.util.Log;
+import android.view.View;
+import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.data.FreezableUtils;
 import com.google.android.gms.wearable.Asset;
 import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.MessageApi;
+import com.google.android.gms.wearable.MessageEvent;
+import com.google.android.gms.wearable.Node;
+import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.Wearable;
 
 import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class MainActivity extends Activity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, DataApi.DataListener {
+public class MainActivity extends Activity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, DataApi.DataListener, MessageApi.MessageListener, NodeApi.NodeListener, View.OnClickListener {
     private ImageView mImageView;
     private GoogleApiClient mGoogleApiClient;
     private String TAG = "WearTAG";
     private static final int REQUEST_RESOLVE_ERROR = 1001;
     private boolean mResolvingError = false;
     private Uri uri;
-    private static final String START_ACTIVITY = "/start_activity";
+    private Node mNode;
+    private ImageButton imgBtn1 = null, imgBtn2 = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-
         final WatchViewStub stub = (WatchViewStub) findViewById(R.id.watch_view_stub);
         stub.setOnLayoutInflatedListener(new WatchViewStub.OnLayoutInflatedListener() {
             @Override
             public void onLayoutInflated(WatchViewStub stub) {
                 mImageView = (ImageView) stub.findViewById(R.id.imageView);
+                imgBtn1 = (ImageButton) findViewById(R.id.imageButton1);
+                imgBtn2 = (ImageButton) findViewById(R.id.imageButton2);
+                updateUI();
             }
         });
 
@@ -56,6 +64,15 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                 .build();
 
         uri = null;
+    }
+
+    void updateUI() {
+        if (imgBtn1 != null) {
+            imgBtn1.setOnClickListener(this);
+        }
+        if (imgBtn2 != null) {
+            imgBtn2.setOnClickListener(this);
+        }
     }
 
     @Override
@@ -77,6 +94,17 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     @Override
     public void onConnected(Bundle bundle) {
         Log.d(TAG, "onConnected: " + bundle);
+        Wearable.NodeApi.getConnectedNodes(mGoogleApiClient).setResultCallback(new ResultCallback<NodeApi.GetConnectedNodesResult>() {
+            @Override
+            public void onResult(NodeApi.GetConnectedNodesResult getConnectedNodesResult) {
+                if (getConnectedNodesResult.getNodes().size() > 0) {
+                    mNode = getConnectedNodesResult.getNodes().get(0); // TODO change to list of nodes
+                    Log.d(TAG, "found node: name=" + mNode.getDisplayName() + ", id=" + mNode.getId());
+                } else {
+                    mNode = null;
+                }
+            }
+        });
     }
 
     @Override
@@ -136,24 +164,27 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     @Override
     public void onDataChanged(DataEventBuffer dataEvents) {
-        //final List<DataEvent> events = FreezableUtils.freezeIterable(dataEvents);
-        //dataEvents.close();
-        for (DataEvent event : dataEvents) {
+        final List<DataEvent> events = FreezableUtils.freezeIterable(dataEvents);
+        dataEvents.close();
+        for (DataEvent event : events) {
             if (event.getType() == DataEvent.TYPE_CHANGED) {
+                Log.d(TAG, "onDataChanged - TYPE_CHANGED");
+                uri = event.getDataItem().getUri();
+                String path = uri.getPath();
+                if ("/image".equals(path)) {
+                    DataMapItem item = DataMapItem.fromDataItem(event.getDataItem());
+                    Asset asset = item.getDataMap().getAsset("img");
+                    Bitmap bitmap = loadBitmapFromAsset(asset);
+                    if (bitmap != null) {
+                        reloadImageView(bitmap);
 
-                    Log.d(TAG, "onDataChanged - TYPE_CHANGED");
-                    uri = event.getDataItem().getUri();
-                    String path = uri.getPath();
-                    if ("/image".equals(path)) {
-                        DataMapItem item = DataMapItem.fromDataItem(event.getDataItem());
-                        Asset asset = item.getDataMap().getAsset("img");
-
-                        Bitmap bitmap = loadBitmapFromAsset(asset);
-                        if (bitmap != null) {
-                            reloadImageView(bitmap);
-                        }
                     }
+                }
 
+                /*
+                mGoogleApiClient.reconnect();
+                Wearable.DataApi.addListener(mGoogleApiClient, this);
+                */
             } else if (event.getType() == DataEvent.TYPE_DELETED) {
                 Log.d(TAG, "onDataChanged - TYPE_DELETED");
             }
@@ -166,19 +197,23 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
             @Override
             public void run() {
                 mImageView.setImageBitmap(bit);
-                Log.d(TAG, "image was changed");
+                //Log.d(TAG, "image was changed");
             }
         });
+
     }
 
     public Bitmap loadBitmapFromAsset(Asset asset) {
         if (asset == null) {
             throw new IllegalArgumentException("Asset must be non-null");
         }
-        //ConnectionResult result = mGoogleApiClient.blockingConnect(1000, TimeUnit.MILLISECONDS);
-        /*if (!result.isSuccess()) {
+
+        ConnectionResult result =
+                mGoogleApiClient.blockingConnect(100, TimeUnit.MILLISECONDS);
+        if (!result.isSuccess()) {
             return null;
-        }*/
+        }
+
         InputStream assetInputStream = Wearable.DataApi.getFdForAsset(
                 mGoogleApiClient, asset).await().getInputStream();
 
@@ -189,5 +224,45 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         return BitmapFactory.decodeStream(assetInputStream);
     }
 
+    @Override
+    public void onMessageReceived(MessageEvent messageEvent) {
+        // TODO
+    }
 
+    @Override
+    public void onPeerConnected(Node _node) {
+        mNode = _node; // TODO change to list of nodes
+    }
+
+    @Override
+    public void onPeerDisconnected(Node node) {
+        // TODO
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.imageButton1:
+                sendToWatch("pic");
+                break;
+
+            case R.id.imageButton2:
+                sendToWatch("vid");
+                break;
+        }
+    }
+
+    public void sendToWatch(String _path) {
+        if (mNode != null) {
+            Wearable.MessageApi.sendMessage(mGoogleApiClient, mNode.getId(), _path, null).setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
+                @Override
+                public void onResult(MessageApi.SendMessageResult sendMessageResult) {
+                    Log.d(TAG, "onResult of sending to mobile: " + sendMessageResult.getStatus());
+
+                }
+            });
+        } else {
+            Log.w(TAG, "no node connected");
+        }
+    }
 }
