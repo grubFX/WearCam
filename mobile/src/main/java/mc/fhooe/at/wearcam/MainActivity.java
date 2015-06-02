@@ -8,13 +8,16 @@ import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
-import android.view.SurfaceHolder;
+import android.view.OrientationEventListener;
 import android.view.SurfaceView;
-import android.widget.Button;
-import android.widget.Toast;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.FrameLayout;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -22,7 +25,6 @@ import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.wearable.Asset;
 import com.google.android.gms.wearable.DataApi;
-import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.Node;
@@ -34,95 +36,40 @@ import com.google.android.gms.wearable.Wearable;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Date;
+import java.util.Vector;
 
-public class MainActivity extends Activity implements DataApi.DataListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, Camera.PreviewCallback, MessageApi.MessageListener, NodeApi.NodeListener {
+public class MainActivity extends Activity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, Camera.PreviewCallback, MessageApi.MessageListener, NodeApi.NodeListener {
     private GoogleApiClient mGoogleApiClient;
-    private Button button;
     private String TAG = "PhoneTag";
-    private int i;
-    private Camera cam;
-    private static final int REQUEST_RESOLVE_ERROR = 1001, SCREEN_ROTATION = 90;
+    private Camera mCamera;
+    private static final int REQUEST_RESOLVE_ERROR = 1001, IMG_SIZE = 200, QUALITY_IN_PERCENT = 30;
     private boolean mResolvingError = false;
-    private SurfaceView surf;
-    private SurfaceHolder mHolder;
-    private Node mNode;
+    private Vector<Node> mNodeList;
+    private Preview mPreview;
+    private int ANGLE_ROTATE_MATRIX, ANGLE_ROTATE_PREVIEW;
+    private OrientationEventListener mOrientationEventListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
         setContentView(R.layout.activity_main);
+
+        ANGLE_ROTATE_PREVIEW = 90;
+        ANGLE_ROTATE_MATRIX = 0;
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(Wearable.API)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .build();
-
-        Wearable.MessageApi.addListener(mGoogleApiClient, this);
-
-        i = 0;
-
-        cam = Camera.open();
-        cam.setDisplayOrientation(SCREEN_ROTATION);
-        cam.setPreviewCallback(this);
-
-        surf = (SurfaceView) findViewById(R.id.surfaceView);
-        mHolder = surf.getHolder();
-        mHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-
-        mHolder.addCallback(new SurfaceHolder.Callback2() {
-            @Override
-            public void surfaceCreated(SurfaceHolder holder) {
-
-                try {
-                    cam.setPreviewDisplay(holder);
-                    cam.startPreview();
-                    cam.autoFocus(new Camera.AutoFocusCallback() {
-                        @Override
-                        public void onAutoFocus(boolean success, Camera camera) {
-                            if (camera.getParameters().getFocusMode() != Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE) {
-                                Camera.Parameters parameters = camera.getParameters();
-                                parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-                                parameters.setFocusAreas(null);
-                                camera.setParameters(parameters);
-                                camera.startPreview();
-                            }
-                        }
-                    });
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            @Override
-            public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-            }
-
-            @Override
-            public void surfaceDestroyed(SurfaceHolder holder) {
-                if (mHolder.getSurface() == null) {
-                    return;
-                }
-
-                try {
-                    cam.stopPreview();
-                } catch (Exception e) {
-                }
-                try {
-                    cam.setPreviewDisplay(mHolder);
-                    cam.startPreview();
-
-                } catch (Exception e) {
-                    Log.d(TAG, "Error starting camera preview: " + e.getMessage());
-                }
-            }
-
-            @Override
-            public void surfaceRedrawNeeded(SurfaceHolder holder) {
-
-            }
-        });
-
+        mNodeList = new Vector<>();
+        mPreview = new Preview(this, (SurfaceView) findViewById(R.id.surfaceView));
+        mPreview.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        ((FrameLayout) findViewById(R.id.layout)).addView(mPreview);
+        mPreview.setKeepScreenOn(true);
     }
 
     @Override
@@ -134,6 +81,19 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     @Override
     public void onConnected(Bundle bundle) {
         Log.d(TAG, "onConnected: " + bundle);
+        Wearable.NodeApi.getConnectedNodes(mGoogleApiClient).setResultCallback(new ResultCallback<NodeApi.GetConnectedNodesResult>() {
+            @Override
+            public void onResult(NodeApi.GetConnectedNodesResult getConnectedNodesResult) {
+                mNodeList = new Vector<>();
+                if (getConnectedNodesResult.getNodes().size() > 0) {
+                    for (Node n : getConnectedNodesResult.getNodes()) {
+                        mNodeList.add(n);
+                        Log.d(TAG, "found node: name=" + n.getDisplayName() + ", id=" + n.getId());
+                    }
+                    //sendToWear("start");
+                }
+            }
+        });
     }
 
     @Override
@@ -155,59 +115,86 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
                 mGoogleApiClient.connect();
             }
         } else {
-            showErrorDialog(result.getErrorCode());
+            Log.e(TAG, "onCeonnectionFailed - error code: " + result.getErrorCode());
             mResolvingError = true;
         }
-
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        if (!mResolvingError) {  // more about this later
-            mGoogleApiClient.connect();
-            Log.d(TAG, "connedted, jippieeeeeeee!!!!! ");
-        }
-    }
-
-    @Override
-    protected void onStop() {
-        mGoogleApiClient.disconnect();
-        Log.d(TAG, "disconnedted,  :( :( :( :( :(!!!!! ");
-        Wearable.MessageApi.removeListener(mGoogleApiClient, this);
-        super.onStop();
     }
 
     @Override
     protected void onResume() {
-        super.onStart();
-        Wearable.DataApi.addListener(mGoogleApiClient, this);
+        super.onResume();
         mGoogleApiClient.connect();
-        Log.d(TAG, "connect called in onResume Method");
+        Wearable.MessageApi.addListener(mGoogleApiClient, this);
+
+        int numCams = Camera.getNumberOfCameras();
+        if (numCams > 0) {
+            try {
+                mCamera = Camera.open(0);
+                mCamera.startPreview();
+                mPreview.setCamera(mCamera);
+            } catch (RuntimeException ex) {
+                Log.e(TAG, "camera not found");
+            }
+        }
+        if (mCamera != null) {
+            mCamera.setPreviewCallback(this);
+            mCamera.setDisplayOrientation(ANGLE_ROTATE_PREVIEW);
+        }
+
+        if (mOrientationEventListener == null) {
+            mOrientationEventListener = new OrientationEventListener(this, SensorManager.SENSOR_DELAY_NORMAL) {
+                @Override
+                public void onOrientationChanged(int _rot) {
+                    int temp = _rot % 360;
+                    if (temp > 315 || temp <= 45) {
+                        ANGLE_ROTATE_MATRIX = 0;
+                    } else if (temp > 45 && temp <= 135) {
+                        ANGLE_ROTATE_MATRIX = 90;
+                    } else if (temp > 135 && temp <= 225) {
+                        ANGLE_ROTATE_MATRIX = 180;
+                    } else if (temp > 225 && temp <= 315) {
+                        ANGLE_ROTATE_MATRIX = 270;
+                    }
+                }
+            };
+        }
+        if (mOrientationEventListener.canDetectOrientation()) {
+            mOrientationEventListener.enable();
+        }
     }
 
     @Override
     protected void onPause() {
-        super.onPause();
+        Wearable.MessageApi.removeListener(mGoogleApiClient, this);
         mGoogleApiClient.disconnect();
-        Log.d(TAG, "disconnected in onPause Method");
-        Wearable.DataApi.removeListener(mGoogleApiClient, this);
-    }
 
-    private void showErrorDialog(int errorCode) {
-        Toast.makeText(getApplication(), errorCode, Toast.LENGTH_SHORT).show();
+        if (mCamera != null) {
+            mCamera.stopPreview();
+            mCamera.setPreviewCallback(null);
+            mPreview.setCamera(null);
+            mCamera.release();
+            mCamera = null;
+        }
+        mOrientationEventListener.disable();
+        super.onPause();
     }
 
     @Override
-    public void onDataChanged(DataEventBuffer dataEventBuffer) {
-    }
-
-    private static Asset createAssetFromBitmap(Bitmap bitmap) {
+    public void onPreviewFrame(byte[] data, Camera camera) {
+        final byte[] arr = data.clone();
+        YuvImage temp = new YuvImage(arr, camera.getParameters().getPreviewFormat(), camera.getParameters().getPictureSize().width, camera.getParameters().getPictureSize().height, null);
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        temp.compressToJpeg(new Rect(0, 0, temp.getWidth(), temp.getHeight()), QUALITY_IN_PERCENT, os);
+        Bitmap preview = Bitmap.createScaledBitmap(BitmapFactory.decodeByteArray(os.toByteArray(), 0, os.toByteArray().length), IMG_SIZE, IMG_SIZE, false);
+        Matrix m = new Matrix();
+        m.postRotate(ANGLE_ROTATE_MATRIX + ANGLE_ROTATE_PREVIEW);
+        Bitmap rotatedBitmap = Bitmap.createBitmap(preview, 0, 0, preview.getWidth(), preview.getHeight(), m, true);
+        Asset asset = null;
         ByteArrayOutputStream byteStream = null;
         try {
             byteStream = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.WEBP, 30, byteStream);
-            return Asset.createFromBytes(byteStream.toByteArray());
+            rotatedBitmap.compress(Bitmap.CompressFormat.WEBP, QUALITY_IN_PERCENT, byteStream);
+            asset = Asset.createFromBytes(byteStream.toByteArray());
         } finally {
             if (byteStream != null) {
                 try {
@@ -217,55 +204,60 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
                 }
             }
         }
+        if (asset != null) {
+            PutDataMapRequest dataMap = PutDataMapRequest.create("/image");
+            dataMap.getDataMap().putLong("" + new Date().getTime(), new Date().getTime());
+            dataMap.getDataMap().putAsset("img", asset);
+            PutDataRequest request = dataMap.asPutDataRequest();
+
+            PendingResult<DataApi.DataItemResult> pendingResult = Wearable.DataApi
+                    .putDataItem(mGoogleApiClient, request);
+            pendingResult.setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+                @Override
+                public void onResult(DataApi.DataItemResult dataItemResult) {
+                    //Log.d(TAG, "onResult of sending data: " + dataItemResult.getStatus());
+                }
+            });
+        }
     }
 
     @Override
-    public void onPreviewFrame(byte[] data, Camera camera) {
-        YuvImage temp = new YuvImage(data, camera.getParameters().getPreviewFormat(), camera.getParameters().getPictureSize().width, camera.getParameters().getPictureSize().height, null);
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        temp.compressToJpeg(new Rect(0, 0, temp.getWidth(), temp.getHeight()), 30, os);
-        Bitmap preview = Bitmap.createScaledBitmap(BitmapFactory.decodeByteArray(os.toByteArray(), 0, os.toByteArray().length), 200, 200, false);
-        Matrix m = new Matrix();
-        m.postRotate(SCREEN_ROTATION);
-        Bitmap rotatedBitmap = Bitmap.createBitmap(preview, 0, 0, preview.getWidth(), preview.getHeight(), m, true);
-        Asset asset = createAssetFromBitmap(rotatedBitmap);
-
-        PutDataMapRequest dataMap = PutDataMapRequest.create("/image");
-
-        dataMap.getDataMap().putLong("time", new Date().getTime());
-        dataMap.getDataMap().putAsset("img", asset);
-        dataMap.getDataMap().putLong(String.valueOf(System.currentTimeMillis()), System.currentTimeMillis());
-        PutDataRequest request = dataMap.asPutDataRequest();
-
-        PendingResult<DataApi.DataItemResult> pendingResult = Wearable.DataApi
-                .putDataItem(mGoogleApiClient, request);
-        pendingResult.setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
-            @Override
-            public void onResult(DataApi.DataItemResult dataItemResult) {
-                Log.i(TAG, "onResult of sending data: " + dataItemResult.getStatus());
-            }
-        });
-    }
-
-    @Override
-    public void onMessageReceived(MessageEvent messageEvent) {
-        final String temp = "msg received: " + messageEvent.getData();
-        Log.d(TAG, temp);
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(getApplicationContext(), temp, Toast.LENGTH_SHORT).show();
-            }
-        });
+    public void onMessageReceived(MessageEvent _messageEvent) {
+        final String temp = _messageEvent.getPath();
+        if (temp.equals("stop")) {
+            finish();
+        }
     }
 
     @Override
     public void onPeerConnected(Node _node) {
-        mNode = _node;
+        Log.d(TAG, "node connected: name=" + _node.getDisplayName() + ", id=" + _node.getId());
+        mNodeList.add(_node);
     }
 
     @Override
-    public void onPeerDisconnected(Node node) {
-        // TODO
+    public void onPeerDisconnected(Node _node) {
+        Log.d(TAG, "node DISCONNECTED: name=" + _node.getDisplayName() + ", id=" + _node.getId());
+        mNodeList.remove(_node);
+    }
+
+    public void sendToWear(final String _path) {
+        for (Node n : mNodeList) {
+            if (n != null) {
+                Wearable.MessageApi.sendMessage(mGoogleApiClient, n.getId(), _path, null).setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
+                    @Override
+                    public void onResult(MessageApi.SendMessageResult sendMessageResult) {
+                        Log.d(TAG, "onResult of sending \"" + _path + "\" to wear: " + sendMessageResult.getStatus());
+                    }
+                });
+            } else {
+                Log.w(TAG, "node was null");
+            }
+        }
+    }
+
+    private void resetCam() { // needs to be called after taking pic
+        mCamera.startPreview();
+        mPreview.setCamera(mCamera);
     }
 }

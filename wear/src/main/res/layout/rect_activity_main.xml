@@ -15,21 +15,21 @@
         android:layout_gravity="center_horizontal" />
 
     <ImageButton
+        android:id="@+id/imageButton1"
         android:layout_width="50dp"
         android:layout_height="50dp"
-        android:id="@+id/imageButton1"
         android:layout_gravity="left|bottom"
-        android:src="@drawable/ic_action_camera"
         android:clickable="true"
-        android:scaleType="centerInside" />
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_action_camera" />
 
     <ImageButton
+        android:id="@+id/imageButton2"
         android:layout_width="50dp"
         android:layout_height="50dp"
-        android:id="@+id/imageButton2"
         android:layout_gravity="right|bottom"
-        android:src="@drawable/ic_action_video"
         android:clickable="true"
-        android:scaleType="centerInside" />
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_action_video" />
 
 </FrameLayout>
