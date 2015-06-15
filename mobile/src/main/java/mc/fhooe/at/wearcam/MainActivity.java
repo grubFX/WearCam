@@ -83,7 +83,6 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     private ImageButton flashButton, changeCamButton;
     private float mDist;
     private static final int REQUEST_RESOLVE_ERROR = 1001, IMG_SIZE = 200, QUALITY_IN_PERCENT = 30;
-    private boolean mResolvingError = false;
     private Vector<Node> mNodeList;
     private Preview mPreview;
     private int ANGLE_ROTATE_MATRIX, ANGLE_ROTATE_PREVIEW;
@@ -169,6 +168,9 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         utils = new Utils(this);
         // loading all image paths from SD card
         imagePaths = utils.getFilePaths();
+
+        mNodeList = new Vector<>();
+
     }
 
     void flashLightAction() {
@@ -285,11 +287,6 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
             recorder = null;
             cam.lock();           // lock camera for later use
         }
-        mNodeList = new Vector<>();
-        mPreview = new Preview(this, (SurfaceView) findViewById(R.id.surfaceView));
-        mPreview.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        ((FrameLayout) findViewById(R.id.layout)).addView(mPreview);
-        mPreview.setKeepScreenOn(true);
     }
 
     private boolean prepareVideoRecorder() {
@@ -440,8 +437,8 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
             cam.stopPreview();
             cam.setPreviewCallback(null);
             mPreview.setCamera(null);
-            mCamera.release();
-            mCamera = null;
+            cam.release();
+            cam = null;
         }*/
         mOrientationEventListener.disable();}
 
@@ -633,92 +630,10 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     }
 
     private void resetCam() { // needs to be called after taking pic
-        mCamera.startPreview();
-        mPreview.setCamera(mCamera);
-    
-
-    @Override
-    public void surfaceCreated(SurfaceHolder holder) {
-
-        try {
-            cam.setPreviewDisplay(holder);
-            cam.startPreview();
-            cam.autoFocus(new Camera.AutoFocusCallback() {
-                @Override
-                public void onAutoFocus(boolean success, Camera camera) {
-                    if (camera.getParameters().getFocusMode() != Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE) {
-                        Camera.Parameters parameters = camera.getParameters();
-                        parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-                        parameters.setFocusAreas(null);
-                        camera.setParameters(parameters);
-                        //camera.startPreview();
-                    }
-                }
-            });
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        cam.startPreview();
+        mPreview.setCamera(cam);
     }
 
-    @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        int angleToRotate = getRoatationAngle(this, Camera.CameraInfo.CAMERA_FACING_FRONT);
-        cam.setDisplayOrientation(angleToRotate);
-    }
-
-    @Override
-    public void surfaceDestroyed(SurfaceHolder holder) {
-        if (isRecording) {
-            recorder.stop();
-            isRecording = false;
-        }
-        //recorder.release();
-    }
-
-    @Override
-    public void onPictureTaken(byte[] data, Camera camera) {
-
-        if (data != null) {
-
-            int angleToRotate = getRoatationAngle(MainActivity.this, currentCameraId);
-            Bitmap orignalImage = BitmapFactory.decodeByteArray(data, 0, data.length);
-            // TODO: front camera portrait picture is reverted
-            Bitmap bitmap = rotate(orignalImage, angleToRotate);
-
-            if (bitmap != null) {
-
-                File file = new File(Environment.getExternalStorageDirectory() + "/Wearcam");
-                if (!file.isDirectory()) {
-                    file.mkdir();
-                }
-
-                file = new File(Environment.getExternalStorageDirectory() + "/Wearcam", System.currentTimeMillis() + ".jpg");
-
-                try {
-                    FileOutputStream fileOutputStream = new FileOutputStream(file);
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
-                    fileOutputStream.flush();
-                    fileOutputStream.close();
-
-                    MediaScannerConnection.scanFile(this, new String[]{file.getPath()}, new String[]{"image/jpeg"}, null);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (Exception exception) {
-                    exception.printStackTrace();
-                }
-            }
-            camera.startPreview();
-        }
-
-    }
-
-    @Override
-    public void onShutter() {
-        AudioManager mgr = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        mgr.playSoundEffect(AudioManager.FLAG_PLAY_SOUND);
-    }
-
-    @Override
     public boolean onTouchEvent(MotionEvent event) {
         // Get the pointer ID
         Camera.Parameters params = cam.getParameters();
@@ -836,5 +751,85 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         mtx.postRotate(degree);
 
         return Bitmap.createBitmap(bitmap, 0, 0, w, h, mtx, true);
+    }
+
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+
+        try {
+            cam.setPreviewDisplay(holder);
+            cam.startPreview();
+            cam.autoFocus(new Camera.AutoFocusCallback() {
+                @Override
+                public void onAutoFocus(boolean success, Camera camera) {
+                    if (camera.getParameters().getFocusMode() != Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE) {
+                        Camera.Parameters parameters = camera.getParameters();
+                        parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+                        parameters.setFocusAreas(null);
+                        camera.setParameters(parameters);
+                        //camera.startPreview();
+                    }
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+        int angleToRotate = getRoatationAngle(this, Camera.CameraInfo.CAMERA_FACING_FRONT);
+        cam.setDisplayOrientation(angleToRotate);
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+        if (isRecording) {
+            recorder.stop();
+            isRecording = false;
+        }
+        //recorder.release();
+    }
+
+    @Override
+    public void onPictureTaken(byte[] data, Camera camera) {
+
+        if (data != null) {
+
+            int angleToRotate = getRoatationAngle(MainActivity.this, currentCameraId);
+            Bitmap orignalImage = BitmapFactory.decodeByteArray(data, 0, data.length);
+            // TODO: front camera portrait picture is reverted
+            Bitmap bitmap = rotate(orignalImage, angleToRotate);
+
+            if (bitmap != null) {
+
+                File file = new File(Environment.getExternalStorageDirectory() + "/Wearcam");
+                if (!file.isDirectory()) {
+                    file.mkdir();
+                }
+
+                file = new File(Environment.getExternalStorageDirectory() + "/Wearcam", System.currentTimeMillis() + ".jpg");
+
+                try {
+                    FileOutputStream fileOutputStream = new FileOutputStream(file);
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
+                    fileOutputStream.flush();
+                    fileOutputStream.close();
+
+                    MediaScannerConnection.scanFile(this, new String[]{file.getPath()}, new String[]{"image/jpeg"}, null);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (Exception exception) {
+                    exception.printStackTrace();
+                }
+            }
+            cam.startPreview();
+        }
+    }
+
+    @Override
+    public void onShutter() {
+        AudioManager mgr = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        mgr.playSoundEffect(AudioManager.FLAG_PLAY_SOUND);
     }
 }

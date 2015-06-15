@@ -149,10 +149,13 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     @Override
     protected void onStart() {
-        mGoogleApiClient.connect();
+        super.onStart();
+        if (!mResolvingError) {
+            mGoogleApiClient.connect();
+            Log.d(TAG, "connected to play services");
+        }
         Wearable.MessageApi.addListener(mGoogleApiClient, this);
         Wearable.DataApi.addListener(mGoogleApiClient, this);
-        super.onStart();
     }
     
     
@@ -226,15 +229,6 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
 
     @Override
-    protected void onStart() {
-        super.onStart();
-        if (!mResolvingError) {
-            mGoogleApiClient.connect();
-            Log.d(TAG, "connected to play services");
-        }
-    }
-
-    @Override
     protected void onStop() {
         mGoogleApiClient.disconnect();
         Log.w(TAG, "disconnected from play services");
@@ -293,12 +287,12 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         }
     }
 
-    private void reloadImageView(Bitmap _bitmap) {
+    private void reloadImageView(Bitmap _bitmap, final ImageView _imageView) {
         final Bitmap bit = _bitmap;
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                mImageView.setImageBitmap(bit);
+                _imageView.setImageBitmap(bit);
                 //Log.d(TAG, "image was changed");
             }
         });
@@ -350,11 +344,11 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.imageButton1:
-                sendToWatch("pic");
+                sendToPhones("pic");
                 break;
 
             case R.id.imageButton2:
-                sendToWatch("vid");
+                sendToPhones("vid");
                 break;
         }
     }
@@ -382,11 +376,11 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     public void onPageSelected(int i, int i1) {
 
         if(i==0 && i1 ==0){
-            sendToPhone("/cam");
+            sendToPhones("/cam");
             Toast.makeText(getApplication(),"cam view",Toast.LENGTH_SHORT).show();
 
         }else if(i == 0 && i1 ==1) {
-            sendToPhone("/gallery");
+            sendToPhones("/gallery");
             Toast.makeText(getApplication(), "gallery view", Toast.LENGTH_SHORT).show();
         }
     }
@@ -487,8 +481,8 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         }
 
         @Override
-        protected Object instantiateItem(ViewGroup viewGroup, int i, int i1) {
-
+        public Object instantiateItem(ViewGroup viewGroup, int i, int i1) {
+            
             ImageView imageView;
             imageView = new ImageView(mContext);
 
@@ -508,8 +502,8 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         }
 
         @Override
-        protected void destroyItem(ViewGroup viewGroup, int i, int i1, Object o) {
-            viewGroup.removeView((View) o);
+        public void destroyItem(ViewGroup viewGroup, int i, int i1, Object o) {
+             viewGroup.removeView((View) o);
         }
 
         @Override
