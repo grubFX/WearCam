@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="wrap_content"
+    android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:baselineAligned="false"
     tools:context=".MainActivity"
@@ -30,28 +30,22 @@
         android:src="@drawable/reddot"
         android:visibility="invisible" />
 
-    <!--- <ImageView
-         android:id="@+id/imageView"
-         android:layout_width="fill_parent"
-         android:layout_height="fill_parent"
-         android:layout_gravity="center_horizontal" />
+    <ImageButton
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:id="@+id/imageButton1"
+        android:layout_gravity="left|bottom"
+        android:src="@drawable/ic_action_camera"
+        android:clickable="true"
+        android:scaleType="centerInside" />
 
-     <ImageButton
-         android:layout_width="50dp"
-         android:layout_height="50dp"
-         android:id="@+id/imageButton1"
-         android:layout_gravity="left|bottom"
-         android:src="@drawable/ic_action_camera"
-         android:clickable="true"
-         android:scaleType="centerInside" />
+    <ImageButton
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:id="@+id/imageButton2"
+        android:layout_gravity="right|bottom"
+        android:src="@drawable/ic_action_video"
+        android:clickable="true"
+        android:scaleType="centerInside" />
 
-     <ImageButton
-         android:layout_width="50dp"
-         android:layout_height="50dp"
-         android:id="@+id/imageButton2"
-         android:layout_gravity="right|bottom"
-         android:src="@drawable/ic_action_video"
-         android:clickable="true"
-         android:scaleType="centerInside" />
- -->
 </FrameLayout>

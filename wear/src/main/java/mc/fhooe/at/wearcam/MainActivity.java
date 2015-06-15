@@ -48,6 +48,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.Inflater;
 
@@ -59,7 +60,9 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     private static final int REQUEST_RESOLVE_ERROR = 1001;
     private boolean mResolvingError = false, animationRunning = false;
     private Uri uri;
-    private Node mNode;
+    private Vector<Node> mNodeList;
+    private ImageButton imgBtn1 = null, imgBtn2 = null;
+
     private GridViewPager pager;
     private DotsPageIndicator dots;
     private int column=2;
@@ -110,7 +113,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                 .addOnConnectionFailedListener(this)
                 .addApi(Wearable.API)
                 .build();
-
+        mNodeList = new Vector();
         uri = null;
 
         // Gridview adapter
@@ -145,10 +148,18 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
 
     @Override
+    protected void onStart() {
+        mGoogleApiClient.connect();
+        Wearable.MessageApi.addListener(mGoogleApiClient, this);
+        Wearable.DataApi.addListener(mGoogleApiClient, this);
+        super.onStart();
+    }
+    
+    
+    @Override
     protected void onResume() {
         super.onResume();
         Wearable.DataApi.addListener(mGoogleApiClient, this);
-        Wearable.MessageApi.addListener(mGoogleApiClient,this);
         mGoogleApiClient.connect();
         Log.d(TAG, "connect called in onResume Method");
     }
@@ -161,17 +172,29 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         Log.d(TAG, "disconnected in onPause Method");
     }
 
+
+    @Override
+    protected void onDestroy() {
+        sendToPhones("stop");
+        Wearable.DataApi.removeListener(mGoogleApiClient, this);
+        Wearable.MessageApi.removeListener(mGoogleApiClient, this);
+        mGoogleApiClient.disconnect();
+        super.onDestroy();
+    }
+    
     @Override
     public void onConnected(Bundle bundle) {
         Log.d(TAG, "onConnected: " + bundle);
         Wearable.NodeApi.getConnectedNodes(mGoogleApiClient).setResultCallback(new ResultCallback<NodeApi.GetConnectedNodesResult>() {
             @Override
             public void onResult(NodeApi.GetConnectedNodesResult getConnectedNodesResult) {
+                mNodeList = new Vector<>();
                 if (getConnectedNodesResult.getNodes().size() > 0) {
-                    mNode = getConnectedNodesResult.getNodes().get(0); // TODO change to list of nodes
-                    Log.d(TAG, "found node: name=" + mNode.getDisplayName() + ", id=" + mNode.getId());
-                } else {
-                    mNode = null;
+                    for (Node n : getConnectedNodesResult.getNodes()) {
+                        mNodeList.add(n);
+                        Log.d(TAG, "found node: name=" + n.getDisplayName() + ", id=" + n.getId());
+                    }
+                    sendToPhones("start");
                 }
             }
         });
@@ -201,6 +224,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         }
     }
 
+
     @Override
     protected void onStart() {
         super.onStart();
@@ -213,11 +237,10 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     @Override
     protected void onStop() {
         mGoogleApiClient.disconnect();
-        Wearable.DataApi.removeListener(mGoogleApiClient, this);
         Log.w(TAG, "disconnected from play services");
         super.onStop();
-        finish();
     }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -235,15 +258,12 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     @Override
     public void onDataChanged(DataEventBuffer dataEvents) {
         final List<DataEvent> events = FreezableUtils.freezeIterable(dataEvents);
-        //dataEvents.close();
+        dataEvents.close();
         for (DataEvent event : events) {
             if (event.getType() == DataEvent.TYPE_CHANGED) {
                 Log.d(TAG, "onDataChanged - TYPE_CHANGED");
                 uri = event.getDataItem().getUri();
                 String path = uri.getPath();
-
-                Log.i("PATH", "PATH is "+ path);
-
                 if ("/image".equals(path)) {
                     DataMapItem item = DataMapItem.fromDataItem(event.getDataItem());
                     Asset asset = item.getDataMap().getAsset("img");
@@ -273,14 +293,13 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         }
     }
 
-    private void reloadImageView(Bitmap _bitmap, final ImageView _imageView) {
+    private void reloadImageView(Bitmap _bitmap) {
         final Bitmap bit = _bitmap;
-
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                _imageView.setImageBitmap(bit);
-                Log.d(TAG, "image was changed");
+                mImageView.setImageBitmap(bit);
+                //Log.d(TAG, "image was changed");
             }
         });
 
@@ -308,35 +327,50 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     }
 
     @Override
-    public void onMessageReceived(MessageEvent messageEvent) {
-
-        Log.i("WEAR",messageEvent.getPath());
+    public void onMessageReceived(MessageEvent _messageEvent) {
+        final String temp = _messageEvent.getPath();
+        if (temp.equals("stop")) {
+            finish();
+        }
     }
+
     @Override
     public void onPeerConnected(Node _node) {
-        mNode = _node; // TODO change to list of nodes
+        Log.d(TAG, "node connected: name=" + _node.getDisplayName() + ", id=" + _node.getId());
+        mNodeList.add(_node);
     }
 
     @Override
-    public void onPeerDisconnected(Node node) {
-        // TODO
+    public void onPeerDisconnected(Node _node) {
+        Log.d(TAG, "node DISCONNECTED: name=" + _node.getDisplayName() + ", id=" + _node.getId());
+        mNodeList.remove(_node);
     }
 
     @Override
     public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.imageButton1:
+                sendToWatch("pic");
+                break;
+
+            case R.id.imageButton2:
+                sendToWatch("vid");
+                break;
+        }
     }
 
-    public void sendToPhone(String _path) {
-        if (mNode != null) {
-            Wearable.MessageApi.sendMessage(mGoogleApiClient, mNode.getId(), _path, null).setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
-                @Override
-                public void onResult(MessageApi.SendMessageResult sendMessageResult) {
-                    Log.d(TAG, "onResult of sending to mobile: " + sendMessageResult.getStatus());
-
-                }
-            });
-        } else {
-            Log.w(TAG, "no node connected");
+    public void sendToPhones(final String _path) {
+        for (Node n : mNodeList) {
+            if (n != null) {
+                Wearable.MessageApi.sendMessage(mGoogleApiClient, n.getId(), _path, null).setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
+                    @Override
+                    public void onResult(MessageApi.SendMessageResult sendMessageResult) {
+                        Log.d(TAG, "onResult of sending \"" + _path + "\" to mobile: " + sendMessageResult.getStatus());
+                    }
+                });
+            } else {
+                Log.w(TAG, "node was null");
+            }
         }
     }
 
