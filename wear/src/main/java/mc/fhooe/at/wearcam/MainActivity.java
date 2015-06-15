@@ -1,17 +1,33 @@
 package mc.fhooe.at.wearcam;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.v4.view.ViewPager;
+import android.support.wearable.view.DotsPageIndicator;
+import android.support.wearable.view.GridPagerAdapter;
+import android.support.wearable.view.GridViewPager;
 import android.support.wearable.view.WatchViewStub;
 import android.util.Log;
+import android.view.GestureDetector;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationSet;
+import android.view.animation.LinearInterpolator;
+import android.view.animation.ScaleAnimation;
+import android.widget.Gallery;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -29,18 +45,42 @@ import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.Wearable;
 
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.Inflater;
 
-public class MainActivity extends Activity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, DataApi.DataListener, MessageApi.MessageListener, NodeApi.NodeListener, View.OnClickListener {
+public class MainActivity extends Activity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, DataApi.DataListener, MessageApi.MessageListener, View.OnTouchListener,
+        GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener, NodeApi.NodeListener, View.OnClickListener, GridViewPager.OnPageChangeListener{
     private ImageView mImageView;
     private GoogleApiClient mGoogleApiClient;
     private String TAG = "WearTAG";
     private static final int REQUEST_RESOLVE_ERROR = 1001;
-    private boolean mResolvingError = false;
+    private boolean mResolvingError = false, animationRunning = false;
     private Uri uri;
     private Node mNode;
-    private ImageButton imgBtn1 = null, imgBtn2 = null;
+    private GridViewPager pager;
+    private DotsPageIndicator dots;
+    private int column=2;
+    private int row=1;
+    private GestureDetector gestures;
+    private ImageView redImageView;
+    private ViewGroup container;
+    private LayoutInflater inflater;
+
+    // SD card image directory
+    public static final String PHOTO_ALBUM = "wearcam";
+
+    // supported file formats
+    public static final List<String> FILE_EXTN = Arrays.asList("jpg", "jpeg",
+            "png");
+
+    private Utils utils;
+
+    private ArrayList<Bitmap> galleryBitmaps = new ArrayList<Bitmap>();
+    private GalleryViewAdapter adapter;
+    private ViewPager viewPager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,12 +90,20 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         stub.setOnLayoutInflatedListener(new WatchViewStub.OnLayoutInflatedListener() {
             @Override
             public void onLayoutInflated(WatchViewStub stub) {
-                mImageView = (ImageView) stub.findViewById(R.id.imageView);
-                imgBtn1 = (ImageButton) findViewById(R.id.imageButton1);
-                imgBtn2 = (ImageButton) findViewById(R.id.imageButton2);
+                pager = (GridViewPager) findViewById(R.id.pager);
+                dots = (DotsPageIndicator) findViewById(R.id.page_indicator);
+                dots.setPager(pager);
+                redImageView = (ImageView) findViewById(R.id.redDotView);
+
+                //mImageView = (ImageView) stub.findViewById(R.id.imageView);
+                //imgBtn1 = (ImageButton) findViewById(R.id.imageButton1);
+                //imgBtn2 = (ImageButton) findViewById(R.id.imageButton2);
                 updateUI();
             }
         });
+
+        gestures = new GestureDetector(MainActivity.this,
+                this);
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
@@ -64,21 +112,43 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                 .build();
 
         uri = null;
+
+        // Gridview adapter
+        adapter = new GalleryViewAdapter(MainActivity.this,galleryBitmaps);
+        viewPager = new ViewPager(getApplicationContext());
+        viewPager.setAdapter(adapter);
+
+    }
+
+    void startRedDotAnimation(){
+        redImageView.setVisibility(ImageView.VISIBLE);
+        ScaleAnimation anim = new ScaleAnimation(1.0f,1.4f,1.0f,1.4f,25,25);
+        anim.setInterpolator(new LinearInterpolator());
+        anim.setRepeatCount(Animation.INFINITE);
+        anim.setRepeatMode(Animation.REVERSE);
+        anim.setDuration(1000);
+        redImageView.startAnimation(anim);
+        animationRunning = true;
+    }
+
+    void stopRedDotAnimation(){
+        animationRunning = false;
+        redImageView.setAnimation(null);
+        redImageView.animate();
+        redImageView.setVisibility(ImageView.INVISIBLE);
     }
 
     void updateUI() {
-        if (imgBtn1 != null) {
-            imgBtn1.setOnClickListener(this);
-        }
-        if (imgBtn2 != null) {
-            imgBtn2.setOnClickListener(this);
-        }
+        pager.setAdapter(new ImageAdapter(getApplication().getApplicationContext()));
+        pager.setOnPageChangeListener(this);
     }
+
 
     @Override
     protected void onResume() {
-        super.onStart();
+        super.onResume();
         Wearable.DataApi.addListener(mGoogleApiClient, this);
+        Wearable.MessageApi.addListener(mGoogleApiClient,this);
         mGoogleApiClient.connect();
         Log.d(TAG, "connect called in onResume Method");
     }
@@ -131,7 +201,6 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         }
     }
 
-
     @Override
     protected void onStart() {
         super.onStart();
@@ -144,10 +213,11 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     @Override
     protected void onStop() {
         mGoogleApiClient.disconnect();
+        Wearable.DataApi.removeListener(mGoogleApiClient, this);
         Log.w(TAG, "disconnected from play services");
         super.onStop();
+        finish();
     }
-
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -165,39 +235,52 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     @Override
     public void onDataChanged(DataEventBuffer dataEvents) {
         final List<DataEvent> events = FreezableUtils.freezeIterable(dataEvents);
-        dataEvents.close();
+        //dataEvents.close();
         for (DataEvent event : events) {
             if (event.getType() == DataEvent.TYPE_CHANGED) {
                 Log.d(TAG, "onDataChanged - TYPE_CHANGED");
                 uri = event.getDataItem().getUri();
                 String path = uri.getPath();
+
+                Log.i("PATH", "PATH is "+ path);
+
                 if ("/image".equals(path)) {
                     DataMapItem item = DataMapItem.fromDataItem(event.getDataItem());
                     Asset asset = item.getDataMap().getAsset("img");
                     Bitmap bitmap = loadBitmapFromAsset(asset);
                     if (bitmap != null) {
-                        reloadImageView(bitmap);
-
+                        reloadImageView(bitmap,mImageView);
                     }
-                }
 
-                /*
-                mGoogleApiClient.reconnect();
-                Wearable.DataApi.addListener(mGoogleApiClient, this);
-                */
+                    Log.i("RECEIVEDIMAGE","TYPE STREAM STREAM STREAM");
+
+                }else if("/galleryimage".equals(path)){
+
+                    DataMapItem item = DataMapItem.fromDataItem(event.getDataItem());
+                    Asset asset = item.getDataMap().getAsset("image");
+                    Bitmap bitmap = loadBitmapFromAsset(asset);
+                    if (bitmap != null) {
+
+                        galleryBitmaps.add(bitmap);
+                        adapter.notifyDataSetChanged();
+                    }
+
+                    Log.i("RECEIVEDIMAGE","TYPE GALLERY GALLERY GALLERY ");
+                }
             } else if (event.getType() == DataEvent.TYPE_DELETED) {
                 Log.d(TAG, "onDataChanged - TYPE_DELETED");
             }
         }
     }
 
-    private void reloadImageView(Bitmap _bitmap) {
+    private void reloadImageView(Bitmap _bitmap, final ImageView _imageView) {
         final Bitmap bit = _bitmap;
+
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                mImageView.setImageBitmap(bit);
-                //Log.d(TAG, "image was changed");
+                _imageView.setImageBitmap(bit);
+                Log.d(TAG, "image was changed");
             }
         });
 
@@ -226,9 +309,9 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     @Override
     public void onMessageReceived(MessageEvent messageEvent) {
-        // TODO
-    }
 
+        Log.i("WEAR",messageEvent.getPath());
+    }
     @Override
     public void onPeerConnected(Node _node) {
         mNode = _node; // TODO change to list of nodes
@@ -241,18 +324,9 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     @Override
     public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.imageButton1:
-                sendToWatch("pic");
-                break;
-
-            case R.id.imageButton2:
-                sendToWatch("vid");
-                break;
-        }
     }
 
-    public void sendToWatch(String _path) {
+    public void sendToPhone(String _path) {
         if (mNode != null) {
             Wearable.MessageApi.sendMessage(mGoogleApiClient, mNode.getId(), _path, null).setResultCallback(new ResultCallback<MessageApi.SendMessageResult>() {
                 @Override
@@ -263,6 +337,163 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
             });
         } else {
             Log.w(TAG, "no node connected");
+        }
+    }
+
+    @Override
+    public void onPageScrolled(int i, int i1, float v, float v1, int i2, int i3) {
+    }
+
+    @Override
+    public void onPageSelected(int i, int i1) {
+
+        if(i==0 && i1 ==0){
+            sendToPhone("/cam");
+            Toast.makeText(getApplication(),"cam view",Toast.LENGTH_SHORT).show();
+
+        }else if(i == 0 && i1 ==1) {
+            sendToPhone("/gallery");
+            Toast.makeText(getApplication(), "gallery view", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onPageScrollStateChanged(int i) {
+    }
+
+    @Override
+    public boolean onDown(MotionEvent e) {
+        //Toast.makeText(getApplication(),"onDown",Toast.LENGTH_SHORT).show();
+        return true;
+    }
+
+    @Override
+    public void onShowPress(MotionEvent e) {
+        //Toast.makeText(getApplication(),"onShowpress",Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public boolean onSingleTapUp(MotionEvent e) {
+        //Toast.makeText(getApplication(),"onSingleTapup",Toast.LENGTH_SHORT).show();
+        //after releasing single tap gesture
+        return true;
+    }
+
+    @Override
+    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+        return true;
+    }
+
+    @Override
+    public void onLongPress(MotionEvent e) {
+        Toast.makeText(getApplication(),"Long Press",Toast.LENGTH_SHORT).show();
+        if(!animationRunning){
+            startRedDotAnimation();
+        }
+    }
+
+
+    @Override
+    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+        return true;
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        return gestures.onTouchEvent(event);
+    }
+
+    @Override
+     public boolean onTouch(View v, MotionEvent event) {
+        return false;
+    }
+
+    @Override
+    public boolean onSingleTapConfirmed(MotionEvent e) {
+        Toast.makeText(getApplication(),"Single Tap",Toast.LENGTH_SHORT).show();
+        if(animationRunning){
+            stopRedDotAnimation();
+        }else{
+            // sendtakepicture notification
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onDoubleTap(MotionEvent e) {
+        Toast.makeText(getApplication(),"Double Tap",Toast.LENGTH_SHORT).show();
+        return false;
+    }
+
+    @Override
+    public boolean onDoubleTapEvent(MotionEvent e) {
+        return false;
+    }
+
+    public class ImageAdapter extends GridPagerAdapter implements View.OnTouchListener {
+       final Context mContext;
+
+        public ImageAdapter(final Context context){
+            mContext = context;
+        }
+
+        @Override
+        public int getRowCount() { // zeile
+            return row;
+        }
+
+        @Override
+        public int getColumnCount(int i) { //spalte =3
+            return column;
+        }
+
+        @Override
+        public int getCurrentColumnForRow(int row, int currentColumn) {
+            return currentColumn;
+        }
+
+        @Override
+        protected Object instantiateItem(ViewGroup viewGroup, int i, int i1) {
+
+            ImageView imageView;
+            imageView = new ImageView(mContext);
+
+            if(i==0&&i1==0){
+                mImageView = imageView;
+                mImageView.setOnTouchListener(this);
+                viewGroup.addView(imageView);
+                galleryBitmaps = null;
+                galleryBitmaps = new ArrayList<Bitmap>();
+                return imageView;
+
+            }else {
+
+                viewGroup.addView(viewPager);
+                return viewPager;
+            }
+        }
+
+        @Override
+        protected void destroyItem(ViewGroup viewGroup, int i, int i1, Object o) {
+            viewGroup.removeView((View) o);
+        }
+
+        @Override
+        public boolean isViewFromObject(View view, Object o) {
+            return view.equals(o);
+        }
+
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            if(v==mImageView){
+                if(gestures.onTouchEvent(event)){
+                    return true;
+                }
+            }else{
+                //touch event for 2nd imageView
+            }
+            return false;
         }
     }
 }

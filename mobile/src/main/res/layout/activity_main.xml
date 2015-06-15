@@ -2,10 +2,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
     tools:context=".MainActivity">
 
     <SurfaceView
@@ -14,5 +10,62 @@
         android:layout_height="fill_parent"
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="takePicture"
+        android:id="@+id/pictureButton"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="makeVideo"
+        android:id="@+id/videoButton"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true" />
+
+    <ImageView
+        android:layout_width="200px"
+        android:layout_height="200px"
+        android:id="@+id/redDotPhoneImage"
+        android:src="@mipmap/reddot"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:visibility="visible"
+        android:alpha="0" />
+
+    <ImageButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/flashlightButton"
+        android:src="@android:drawable/ic_lock_idle_low_battery"
+        android:layout_alignTop="@+id/pictureButton"
+        android:layout_toRightOf="@+id/pictureButton"
+        android:layout_toEndOf="@+id/pictureButton" />
+
+    <ImageButton
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/changeCameraButton"
+        android:src="@android:drawable/ic_menu_always_landscape_portrait"
+        android:layout_alignBottom="@+id/flashlightButton"
+        android:layout_toStartOf="@+id/videoButton"
+        android:layout_alignTop="@+id/videoButton"
+        android:layout_toLeftOf="@+id/videoButton" />
+
+    <Button
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="G"
+        android:id="@+id/galleryButton"
+        android:layout_above="@+id/flashlightButton"
+        android:layout_centerHorizontal="true" />
 
 </RelativeLayout>
