@@ -82,7 +82,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     private ImageView redDotView;
     private ImageButton flashButton, changeCamButton;
     private float mDist;
-    private static final int REQUEST_RESOLVE_ERROR = 1001, IMG_SIZE = 200, QUALITY_IN_PERCENT = 30;
+    private static final int REQUEST_RESOLVE_ERROR = 1001, IMG_SIZE = 200, QUALITY_IN_PERCENT = 20;
     private Vector<Node> mNodeList;
     private Preview mPreview;
     private int ANGLE_ROTATE_MATRIX, ANGLE_ROTATE_PREVIEW;
@@ -275,7 +275,6 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
             cam.setParameters(p);
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LOCKED);
 
-
             if (prepareVideoRecorder()) {
                 recorder.start();
                 isRecording = true;
@@ -305,7 +304,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         recorder.setCamera(cam);
 
         //setorientation
-        recorder.setOrientationHint(getRoatationAngle(this,currentCameraId));
+        recorder.setOrientationHint(getRoatationAngle(this, currentCameraId));
 
         // Step 2: Set sources
         recorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
@@ -409,14 +408,18 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         Wearable.DataApi.addListener(mGoogleApiClient, this);
         mGoogleApiClient.connect();
         Log.d(TAG, "connect called in onResume Method");
-        
+
         if (mOrientationEventListener == null) {
             mOrientationEventListener = new OrientationEventListener(this, SensorManager.SENSOR_DELAY_NORMAL) {
                 @Override
                 public void onOrientationChanged(int _rot) {
                     int temp = _rot % 360;
                     if (temp > 315 || temp <= 45) {
-                        ANGLE_ROTATE_MATRIX = 0;
+                        if (currentCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                            ANGLE_ROTATE_MATRIX = 180;
+                        } else {
+                            ANGLE_ROTATE_MATRIX = 0;
+                        }
                     } else if (temp > 45 && temp <= 135) {
                         ANGLE_ROTATE_MATRIX = 90;
                     } else if (temp > 135 && temp <= 225) {
@@ -430,8 +433,8 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         if (mOrientationEventListener.canDetectOrientation()) {
             mOrientationEventListener.enable();
         }
-    
-    
+
+
     }
 
     @Override
@@ -447,7 +450,8 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
             cam.release();
             cam = null;
         }*/
-        mOrientationEventListener.disable();}
+        mOrientationEventListener.disable();
+    }
 
     private void showErrorDialog(int errorCode) {
         Toast.makeText(getApplication(), errorCode, Toast.LENGTH_SHORT).show();
@@ -538,22 +542,46 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         Log.d("LOG", "received path:  " + temp);
 
         if (temp.equals("/cam")) {
-            isGalleryModeOn = false;
-            changeView();
-        } else if (temp.equals("/gallery")) {
-            isGalleryModeOn = true;
-            changeView();
-            sendStoredImagesToPhone();
-        } else if(temp.equals("stop")){
+            //switch back to camera preview
+        } else if (temp.equals("flash")) {
+
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    flashLightAction();
+                }
+            });
+
+        } else if (temp.equals("change")) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    changeCamera();
+                }
+            });
+
+        } else if (temp.equals("pic")) {
+
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    takePicture();
+                }
+            });
+        } else if (temp.equals("vid")) {
+
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    takeVideo();
+                }
+            });
+        } else if (temp.equals("stop")) {
             finish();
+        } else if (temp.equals("/gallery")) {
+
         }
 
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(getApplicationContext(), temp, Toast.LENGTH_SHORT).show();
-            }
-        });
     }
 
     private void sendStoredImagesToPhone() {
@@ -717,6 +745,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
 
     /**
      * Get Rotation Angle
+     *
      * @param mContext
      * @param cameraId probably front cam
      * @return angel to rotate
@@ -785,7 +814,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        int angleToRotate = getRoatationAngle(this, Camera.CameraInfo.CAMERA_FACING_FRONT);
+        int angleToRotate = getRoatationAngle(this, currentCameraId);
         cam.setDisplayOrientation(angleToRotate);
     }
 

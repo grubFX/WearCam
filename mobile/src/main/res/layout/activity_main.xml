@@ -66,6 +66,7 @@
         android:text="G"
         android:id="@+id/galleryButton"
         android:layout_above="@+id/flashlightButton"
-        android:layout_centerHorizontal="true" />
+        android:layout_centerHorizontal="true"
+        android:visibility="invisible" />
 
 </RelativeLayout>

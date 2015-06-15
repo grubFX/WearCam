@@ -9,6 +9,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.support.v4.view.ViewPager;
 import android.support.wearable.view.DotsPageIndicator;
 import android.support.wearable.view.GridPagerAdapter;
@@ -24,6 +25,7 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationSet;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.ScaleAnimation;
+import android.widget.Button;
 import android.widget.Gallery;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -58,15 +60,16 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     private GoogleApiClient mGoogleApiClient;
     private String TAG = "WearTAG";
     private static final int REQUEST_RESOLVE_ERROR = 1001;
-    private boolean mResolvingError = false, animationRunning = false;
+    private boolean mResolvingError = false, animationRunning = false , flashOn = false;
     private Uri uri;
     private Vector<Node> mNodeList;
     private ImageButton imgBtn1 = null, imgBtn2 = null;
+    private Button counterBtn = null;
 
     private GridViewPager pager;
     private DotsPageIndicator dots;
-    private int column=2;
-    private int row=1;
+    private int column=2,row=1;
+    private int clockCounter = 0;
     private GestureDetector gestures;
     private ImageView redImageView;
     private ViewGroup container;
@@ -98,12 +101,13 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                 dots.setPager(pager);
                 redImageView = (ImageView) findViewById(R.id.redDotView);
 
-                //mImageView = (ImageView) stub.findViewById(R.id.imageView);
-                //imgBtn1 = (ImageButton) findViewById(R.id.imageButton1);
-                //imgBtn2 = (ImageButton) findViewById(R.id.imageButton2);
+                imgBtn1 = (ImageButton) findViewById(R.id.imageButton1);
+                imgBtn2 = (ImageButton) findViewById(R.id.imageButton2);
+                counterBtn = (Button) findViewById(R.id.imageButton3);
                 updateUI();
             }
         });
+
 
         gestures = new GestureDetector(MainActivity.this,
                 this);
@@ -143,8 +147,10 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     void updateUI() {
         pager.setAdapter(new ImageAdapter(getApplication().getApplicationContext()));
         pager.setOnPageChangeListener(this);
+        imgBtn1.setOnClickListener(this);
+        imgBtn2.setOnClickListener(this);
+        counterBtn.setOnClickListener(this);
     }
-
 
     @Override
     protected void onStart() {
@@ -226,11 +232,12 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         }
     }
 
-
     @Override
     protected void onStop() {
+        sendToPhones("stop");
         mGoogleApiClient.disconnect();
         Log.w(TAG, "disconnected from play services");
+
         super.onStop();
     }
 
@@ -343,11 +350,37 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.imageButton1:
-                sendToPhones("pic");
+                sendToPhones("flash");
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if(flashOn){
+                            Toast.makeText(getApplicationContext(),"Flash off",Toast.LENGTH_SHORT).show();
+                            flashOn = false;
+                        }else{
+                            Toast.makeText(getApplicationContext(),"Flash on",Toast.LENGTH_SHORT).show();
+                            flashOn = true;
+                        }
+
+                    }
+                });
                 break;
 
             case R.id.imageButton2:
-                sendToPhones("vid");
+                sendToPhones("change");
+                break;
+
+            case R.id.imageButton3:
+                if(clockCounter < 5 ){
+                    clockCounter++;
+                    counterBtn.setBackground(null);
+                    counterBtn.setText(String.valueOf(clockCounter));
+                }else{
+                    clockCounter = 0;
+                    counterBtn.setBackground(getResources().getDrawable(android.R.drawable.ic_menu_recent_history));
+                    counterBtn.setText("");
+                }
+
                 break;
         }
     }
@@ -376,7 +409,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
         if(i==0 && i1 ==0){
             sendToPhones("/cam");
-            Toast.makeText(getApplication(),"cam view",Toast.LENGTH_SHORT).show();
+            //Toast.makeText(getApplication(),"cam view",Toast.LENGTH_SHORT).show();
 
         }else if(i == 0 && i1 ==1) {
             sendToPhones("/gallery");
@@ -416,6 +449,10 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         Toast.makeText(getApplication(),"Long Press",Toast.LENGTH_SHORT).show();
         if(!animationRunning){
             startRedDotAnimation();
+            sendToPhones("vid");
+        }else{
+            stopRedDotAnimation();
+            sendToPhones("vid");
         }
     }
 
@@ -437,11 +474,34 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     @Override
     public boolean onSingleTapConfirmed(MotionEvent e) {
-        Toast.makeText(getApplication(),"Single Tap",Toast.LENGTH_SHORT).show();
+
         if(animationRunning){
             stopRedDotAnimation();
+            sendToPhones("vid");
         }else{
-            // sendtakepicture notification
+
+            if(clockCounter != 0){
+                int time = clockCounter *1000;
+                counterBtn.setTextColor(Color.RED);
+
+                new CountDownTimer(time, 1000) {
+
+                    public void onTick(long millisUntilFinished) {
+                        counterBtn.setText(String.valueOf(millisUntilFinished / 1000));
+                    }
+
+                    public void onFinish() {
+                        counterBtn.setText("");
+                        counterBtn.setBackground(getResources().getDrawable(android.R.drawable.ic_menu_recent_history));
+                        counterBtn.setTextColor(Color.WHITE);
+                        sendToPhones("pic");
+                    }
+                }.start();
+
+            }else{
+                sendToPhones("pic");
+            }
+
         }
         return true;
     }
