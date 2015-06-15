@@ -120,7 +120,6 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         adapter = new GalleryViewAdapter(MainActivity.this,galleryBitmaps);
         viewPager = new ViewPager(getApplicationContext());
         viewPager.setAdapter(adapter);
-
     }
 
     void startRedDotAnimation(){
@@ -482,7 +481,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
         @Override
         public Object instantiateItem(ViewGroup viewGroup, int i, int i1) {
-            
+
             ImageView imageView;
             imageView = new ImageView(mContext);
 

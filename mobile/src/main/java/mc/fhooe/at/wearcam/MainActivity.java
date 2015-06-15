@@ -171,6 +171,13 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
 
         mNodeList = new Vector<>();
 
+        galleryButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+
     }
 
     void flashLightAction() {
