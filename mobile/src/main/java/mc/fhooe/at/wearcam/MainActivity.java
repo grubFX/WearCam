@@ -63,7 +63,6 @@ import java.util.Vector;
 public class MainActivity extends Activity implements DataApi.DataListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, Camera.PreviewCallback, MessageListener, NodeApi.NodeListener, SurfaceHolder.Callback, Camera.PictureCallback, Camera.ShutterCallback, View.OnTouchListener {
     private GoogleApiClient mGoogleApiClient;
     private String TAG = "PhoneTag", path = null;
-    public static final String PHOTO_ALBUM = "wearcam";
     private int currentCameraId = Camera.CameraInfo.CAMERA_FACING_BACK, index, angleRotateMatrix, anglePreview;
     private static final int REQUEST_RESOLVE_ERROR = 1001, IMG_SIZE = 200, QUALITY_IN_PERCENT = 20;
     private Camera cam;
@@ -76,16 +75,13 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     private float mDist;
     private Vector<Node> mNodeList;
     private OrientationEventListener mOrientationEventListener;
-
-    //----------------------------------------------------
-    // SD card image directory
-
-    // supported file formats
-    public static final List<String> FILE_EXTN = Arrays.asList("jpg", "jpeg", "png");
-
     private Utils utils;
     private ArrayList<String> imagePaths = new ArrayList<String>();
 
+    // SD card image directory
+    public static final String PHOTO_ALBUM = "wearcam";
+    // supported file formats
+    public static final List<String> FILE_EXTN = Arrays.asList("jpg", "jpeg", "png");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,7 +107,9 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         pictureButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                takePicture();
+                if (!isGalleryModeOn) {
+                    takePicture();
+                }
             }
         });
 
@@ -119,7 +117,9 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         videoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                takeVideo();
+                if (!isGalleryModeOn) {
+                    takeVideo();
+                }
             }
         });
 
@@ -341,7 +341,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
             mGoogleApiClient.connect();
             Log.d(TAG, "connedted, jippieeeeeeee!!!!! ");
         }
-        Uri uri = new Uri.Builder().scheme(PutDataRequest.WEAR_URI_SCHEME).path("/image").build();
+        Uri uri = new Uri.Builder().scheme(PutDataRequest.WEAR_URI_SCHEME).path(MyConstants.PATH_IMAGE).build();
         Wearable.DataApi.deleteDataItems(mGoogleApiClient, uri).setResultCallback(new ResultCallback<DataApi.DeleteDataItemsResult>() {
             @Override
             public void onResult(DataApi.DeleteDataItemsResult deleteDataItemsResult) {
@@ -389,8 +389,6 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         if (mOrientationEventListener.canDetectOrientation()) {
             mOrientationEventListener.enable();
         }
-
-
     }
 
     @Override
@@ -464,9 +462,9 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
                 }
             }
             if (asset != null) {
-                PutDataMapRequest dataMap = PutDataMapRequest.create("/image");
-                dataMap.getDataMap().putLong("timestamp", System.currentTimeMillis());
-                dataMap.getDataMap().putAsset("img", asset);
+                PutDataMapRequest dataMap = PutDataMapRequest.create(MyConstants.PATH_IMAGE);
+                dataMap.getDataMap().putLong(MyConstants.DATA_ITEM_TIMESTAMP, System.currentTimeMillis());
+                dataMap.getDataMap().putAsset(MyConstants.DATA_ITEM_IMAGE, asset);
                 PutDataRequest request = dataMap.asPutDataRequest();
 
                 PendingResult<DataApi.DataItemResult> pendingResult = Wearable.DataApi
@@ -485,49 +483,49 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     public void onMessageReceived(MessageEvent messageEvent) {
         final String temp = messageEvent.getPath();
 
-        Log.d("LOG", "received path:  " + temp);
+        Log.d(TAG, "received path:  " + temp);
 
-        if (temp.equals("/cam")) {
+        if (temp.equals(MyConstants.PATH_CAM)) {
             isGalleryModeOn = false;
             changeView();
 
-        } else if (temp.equals("/gallery")) {
+        } else if (temp.equals(MyConstants.PATH_GALLERY)) {
             isGalleryModeOn = true;
             changeView();
             sendStoredImageToPhone(index);
-        } else if (temp.equals("/stop")) {
+        } else if (temp.equals(MyConstants.PATH_STOP)) {
             finish();
-        } else if (temp.equals("/takePic")) {
+        } else if (temp.equals(MyConstants.PATH_TAKE_PIC)) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     takePicture();
                 }
             });
-        } else if (temp.equals("/flash")) {
+        } else if (temp.equals(MyConstants.PATH_FLASH)) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     flashLightAction();
                 }
             });
-        } else if (temp.equals("/changeCam")) {
+        } else if (temp.equals(MyConstants.PATH_CHANGE_CAM)) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     changeCamera();
                 }
             });
-        } else if (temp.equals("/takeVid")) {
+        } else if (temp.equals(MyConstants.PATH_TAKE_VID)) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     takeVideo();
                 }
             });
-        } else if (temp.equals("/nextPic")) {
+        } else if (temp.equals(MyConstants.PATH_NEXT_PIC)) {
             sendStoredImageToPhone((++index) % imagePaths.size());
-        } else if (temp.equals("/prevPic")) {
+        } else if (temp.equals(MyConstants.PATH_PREV_PIC)) {
             sendStoredImageToPhone((--index) % imagePaths.size());
         }
         runOnUiThread(new Runnable() {
@@ -545,9 +543,9 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         Bitmap bitmap = BitmapFactory.decodeFile(imagePaths.get(_index), options);
         Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, bitmap.getWidth() / 2, bitmap.getHeight() / 2, true);
         Asset asset = createAssetFromBitmap(resizedBitmap);
-        PutDataMapRequest dataMap = PutDataMapRequest.create("/galleryimage");
-        dataMap.getDataMap().putAsset("img", asset);
-        dataMap.getDataMap().putLong("timestamp", System.currentTimeMillis());
+        PutDataMapRequest dataMap = PutDataMapRequest.create(MyConstants.PATH_GALLERY_IMAGE);
+        dataMap.getDataMap().putAsset(MyConstants.DATA_ITEM_IMAGE, asset);
+        dataMap.getDataMap().putLong(MyConstants.DATA_ITEM_TIMESTAMP, System.currentTimeMillis());
         PutDataRequest request = dataMap.asPutDataRequest();
 
         PendingResult<DataApi.DataItemResult> pendingResult = Wearable.DataApi
@@ -684,7 +682,9 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         }
         mDist = newDist;
         params.setZoom(zoom);
-        cam.setParameters(params);
+        if (cam != null) {
+            cam.setParameters(params);
+        }
     }
 
     public void handleFocus(MotionEvent event, Camera.Parameters params) {
@@ -810,9 +810,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
 
     @Override
     public void onPictureTaken(byte[] data, Camera camera) {
-
         if (data != null) {
-
             int angleToRotate = getRoatationAngle(MainActivity.this, currentCameraId);
             Bitmap orignalImage = BitmapFactory.decodeByteArray(data, 0, data.length);
             // TODO: front camera portrait picture is reverted

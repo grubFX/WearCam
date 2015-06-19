@@ -10,7 +10,6 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer;
-import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.ViewPager;
 import android.support.wearable.view.DotsPageIndicator;
 import android.support.wearable.view.GridPagerAdapter;
@@ -71,11 +70,8 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     private LayoutInflater inflater;
     public static final String PHOTO_ALBUM = "wearcam"; // SD card image directory
     public static final List<String> FILE_EXTN = Arrays.asList("jpg", "jpeg", "png");// supported file formats
-    private Utils utils;
-    // private ArrayList<Bitmap> galleryBitmaps = new ArrayList<Bitmap>();
     private GalleryViewAdapter adapter;
     private ViewPager viewPager;
-    private float initialY;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -116,7 +112,6 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         }
 
         clockCounter = 0;
-
         isGalleryModeOn = false;
     }
 
@@ -164,14 +159,13 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         Wearable.MessageApi.addListener(mGoogleApiClient, this);
         Wearable.DataApi.addListener(mGoogleApiClient, this);
 
-        Uri uri = new Uri.Builder().scheme(PutDataRequest.WEAR_URI_SCHEME).path("/image").build();
+        Uri uri = new Uri.Builder().scheme(PutDataRequest.WEAR_URI_SCHEME).path(MyConstants.PATH_IMAGE).build();
         Wearable.DataApi.deleteDataItems(mGoogleApiClient, uri).setResultCallback(new ResultCallback<DataApi.DeleteDataItemsResult>() {
             @Override
             public void onResult(DataApi.DeleteDataItemsResult deleteDataItemsResult) {
-                Log.d(TAG, "onResult of deleting /image: " + deleteDataItemsResult.getStatus().toString());
+                Log.d(TAG, "onResult of deleting " + MyConstants.PATH_IMAGE + ": " + deleteDataItemsResult.getStatus().toString());
             }
         });
-
     }
 
 
@@ -194,7 +188,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     @Override
     protected void onDestroy() {
-        sendToPhones("/stop");
+        sendToPhones(MyConstants.PATH_STOP);
         Wearable.DataApi.removeListener(mGoogleApiClient, this);
         Wearable.MessageApi.removeListener(mGoogleApiClient, this);
         mGoogleApiClient.disconnect();
@@ -213,7 +207,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                         mNodeList.add(n);
                         Log.d(TAG, "found node: name=" + n.getDisplayName() + ", id=" + n.getId());
                     }
-                    sendToPhones("/start");
+                    sendToPhones(MyConstants.PATH_START);
                 }
             }
         });
@@ -245,7 +239,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     @Override
     protected void onStop() {
-        sendToPhones("/stop");
+        sendToPhones(MyConstants.PATH_STOP);
         mGoogleApiClient.disconnect();
         Log.w(TAG, "disconnected from play services");
         super.onStop();
@@ -274,17 +268,17 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                 //Log.d(TAG, "onDataChanged - TYPE_CHANGED");
                 uri = event.getDataItem().getUri();
                 String path = uri.getPath();
-                if ("/image".equals(path)) {
+                if (path.equals(MyConstants.PATH_IMAGE)) {
                     DataMapItem item = DataMapItem.fromDataItem(event.getDataItem());
-                    Asset asset = item.getDataMap().getAsset("img");
+                    Asset asset = item.getDataMap().getAsset(MyConstants.DATA_ITEM_IMAGE);
                     Bitmap bitmap = loadBitmapFromAsset(asset);
                     if (bitmap != null) {
                         reloadImageView(bitmap, mImageViewCam);
                     }
                     // Log.i("RECEIVEDIMAGE", "TYPE STREAM STREAM STREAM");
-                } else if ("/galleryimage".equals(path)) {
+                } else if (path.equals(MyConstants.PATH_GALLERY_IMAGE)) {
                     DataMapItem item = DataMapItem.fromDataItem(event.getDataItem());
-                    Asset asset = item.getDataMap().getAsset("img");
+                    Asset asset = item.getDataMap().getAsset(MyConstants.DATA_ITEM_IMAGE);
                     Bitmap bitmap = loadBitmapFromAsset(asset);
                     if (bitmap != null && adapter != null) {
                         //adapter.setImg(bitmap);
@@ -332,7 +326,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     @Override
     public void onMessageReceived(MessageEvent _messageEvent) {
         final String temp = _messageEvent.getPath();
-        if (temp.equals("/stop")) {
+        if (temp.equals(MyConstants.PATH_STOP)) {
             finish();
         }
     }
@@ -353,7 +347,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.imageButton1:
-                sendToPhones("/flash");
+                sendToPhones(MyConstants.PATH_FLASH);
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -369,7 +363,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                 break;
 
             case R.id.imageButton2:
-                sendToPhones("/changeCam");
+                sendToPhones(MyConstants.PATH_CHANGE_CAM);
                 break;
 
             case R.id.imageButton3:
@@ -408,7 +402,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     @Override
     public void onPageSelected(int i, int i1) {
         if (i == 0 && i1 == 0) {
-            sendToPhones("/cam");
+            sendToPhones(MyConstants.PATH_CAM);
             //Toast.makeText(getApplication(), "cam view", Toast.LENGTH_SHORT).show();
             isGalleryModeOn = false;
             imgBtn1.setActivated(true);
@@ -419,7 +413,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
             counterBtn.setVisibility(View.VISIBLE);
         } else if (i == 0 && i1 == 1) {
             isGalleryModeOn = true;
-            sendToPhones("/gallery");
+            sendToPhones(MyConstants.PATH_GALLERY);
             //Toast.makeText(getApplication(), "gallery view", Toast.LENGTH_SHORT).show();
             imgBtn1.setActivated(false);
             imgBtn1.setVisibility(View.INVISIBLE);
@@ -454,13 +448,18 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     @Override
     public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+        if (distanceY < 0) {
+            sendToPhones(MyConstants.PATH_NEXT_PIC);
+        } else {
+            sendToPhones(MyConstants.PATH_PREV_PIC);
+        }
         return true;
     }
 
     @Override
     public void onLongPress(MotionEvent e) {
         if (!isGalleryModeOn && !animationRunning) {
-            sendToPhones("/takeVid");
+            sendToPhones(MyConstants.PATH_TAKE_VID);
             Toast.makeText(getApplication(), "recording video", Toast.LENGTH_SHORT).show();
             startRedDotAnimation();
         }
@@ -468,60 +467,17 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     @Override
     public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-        Toast.makeText(this, "onFling detected", Toast.LENGTH_SHORT).show();
-
-        /*
-        try {
-            final int SWIPE_MIN_DISTANCE = 50, SWIPE_MAX_OFF_PATH = 100, SWIPE_THRESHOLD_VELOCITY = 100;
-            if (Math.abs(e1.getX() - e2.getX()) > SWIPE_MAX_OFF_PATH) {
-                return false;
-            }
-
-            if (e1.getY() - e2.getY() > SWIPE_MIN_DISTANCE && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
-                sendToPhones("/nextPic");
-                Toast.makeText(this, "swipe down", Toast.LENGTH_SHORT).show();
-            } else if (e2.getY() - e1.getY() > SWIPE_MIN_DISTANCE && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
-                sendToPhones("/prevPic");
-                Toast.makeText(this, "swipe up", Toast.LENGTH_SHORT).show();
-            }
-        } catch (Exception e) {
-            // nothing
-        }
-        */
         return false;
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        int action = MotionEventCompat.getActionMasked(event);
-
-        switch (action) {
-            case MotionEvent.ACTION_DOWN:
-                initialY = event.getY();
-                Log.d(TAG, "action was DOWN");
-                return true;
-
-            case MotionEvent.ACTION_UP:
-                Log.d(TAG, "action was UP");
-                float finalY = event.getY();
-                if (initialY < finalY) {
-                    Log.d(TAG, "Up to Down swipe performed");
-                    sendToPhones("/nextPic");
-                }
-                if (initialY > finalY) {
-                    Log.d(TAG, "Down to Up swipe performed");
-                    sendToPhones("/prevPic");
-                }
-                return true;
-
-            default:
-                return super.onTouchEvent(event);
-        }
+        return super.onTouchEvent(event);
     }
 
     @Override
     public boolean onTouch(View v, MotionEvent event) {
-        return false;
+        return true;
     }
 
     @Override
@@ -546,12 +502,12 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                             counterBtn.setText("");
                             counterBtn.setBackground(getResources().getDrawable(android.R.drawable.ic_menu_recent_history));
                             counterBtn.setTextColor(Color.WHITE);
-                            sendToPhones("/takePic");
+                            sendToPhones(MyConstants.PATH_TAKE_PIC);
                         }
                     }.start();
                 } else {
                     Toast.makeText(getApplication(), "taking a picture", Toast.LENGTH_SHORT).show();
-                    sendToPhones("/takePic");
+                    sendToPhones(MyConstants.PATH_TAKE_PIC);
                 }
             }
         }

@@ -58,12 +58,10 @@ public class GalleryViewAdapter extends PagerAdapter {
 
         inflater = (LayoutInflater) _activity
                 .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        View viewLayout = inflater.inflate(R.layout.layout_fullscreen_image, container,
-                false);
+        View viewLayout = inflater.inflate(R.layout.layout_fullscreen_image, container, false);
 
         imgDisplay = (ImageView) viewLayout.findViewById(R.id.imgDisplay);
 
-//        imgDisplay.setImageBitmap(images.get(position));
         if (img != null) {
             imgDisplay.setImageBitmap(img);
         }
