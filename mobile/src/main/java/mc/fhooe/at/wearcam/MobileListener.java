@@ -1,5 +1,6 @@
 package mc.fhooe.at.wearcam;
 
+import android.app.PendingIntent;
 import android.content.Intent;
 import android.util.Log;
 
@@ -11,23 +12,18 @@ import com.google.android.gms.wearable.WearableListenerService;
  */
 public class MobileListener extends WearableListenerService {
     private static final String TAG = "MobileListener";
-    Intent intent = null;
 
     @Override
     public void onMessageReceived(MessageEvent messageEvent) {
         super.onMessageReceived(messageEvent);
         Log.d(TAG, "onMessageReceived: " + messageEvent.getPath());
 
-        if (messageEvent.getPath().equals("start")) {
-            if (intent == null) {
-                intent = new Intent(this, MainActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(intent);
-            } else {
-                Log.d(TAG, "intent already running");
-            }
-        } else if (messageEvent.getPath().equals("stop")) {
-            intent = null;
+        if (messageEvent.getPath().equals("/start")) {
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        } else if (messageEvent.getPath().equals("/stop")) {
+
         }
     }
 }

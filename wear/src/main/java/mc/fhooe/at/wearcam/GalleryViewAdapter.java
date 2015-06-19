@@ -3,43 +3,49 @@ package mc.fhooe.at.wearcam;
 import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
-import com.google.android.gms.wearable.Asset;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
 
 /**
  * Created by Musti on 12.06.2015.
  */
-public class GalleryViewAdapter extends PagerAdapter  {
+public class GalleryViewAdapter extends PagerAdapter {
 
     private Activity _activity;
-    private ArrayList<Bitmap> images;
+    //private ArrayList<Bitmap> images;
     private LayoutInflater inflater;
+    private Bitmap img;
+    private ImageView imgDisplay;
 
-    public GalleryViewAdapter(Activity activity,
-                              ArrayList<Bitmap> _images) {
+    public GalleryViewAdapter(Activity activity) {
+        //ArrayList<Bitmap> _images) {
         this._activity = activity;
-        this.images = _images;
+        //this.images = _images;
+        img = null;
+        imgDisplay = null;
     }
 
     public int getItemPosition(Object object) {
         return POSITION_NONE;
     }
 
+    public ImageView getImgDisplay() {
+        return imgDisplay;
+    }
+
+    public void setImg(Bitmap _img) {
+        img = _img;
+    }
+
     @Override
     public int getCount() {
-        return this.images.size();
+        //return this.images.size();
+        return 1;
     }
 
     @Override
@@ -49,7 +55,6 @@ public class GalleryViewAdapter extends PagerAdapter  {
 
     @Override
     public Object instantiateItem(ViewGroup container, int position) {
-        ImageView imgDisplay;
 
         inflater = (LayoutInflater) _activity
                 .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -58,8 +63,10 @@ public class GalleryViewAdapter extends PagerAdapter  {
 
         imgDisplay = (ImageView) viewLayout.findViewById(R.id.imgDisplay);
 
-        imgDisplay.setImageBitmap(images.get(position));
-
+//        imgDisplay.setImageBitmap(images.get(position));
+        if (img != null) {
+            imgDisplay.setImageBitmap(img);
+        }
         ((ViewPager) container).addView(viewLayout);
 
         return viewLayout;

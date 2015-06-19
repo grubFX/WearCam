@@ -10,6 +10,7 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.ViewPager;
 import android.support.wearable.view.DotsPageIndicator;
 import android.support.wearable.view.GridPagerAdapter;
@@ -22,11 +23,9 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
-import android.view.animation.AnimationSet;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.ScaleAnimation;
 import android.widget.Button;
-import android.widget.Gallery;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -44,49 +43,39 @@ import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.MessageEvent;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.NodeApi;
+import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.TimeUnit;
-import java.util.zip.Inflater;
 
-public class MainActivity extends Activity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, DataApi.DataListener, MessageApi.MessageListener, View.OnTouchListener,
-        GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener, NodeApi.NodeListener, View.OnClickListener, GridViewPager.OnPageChangeListener{
-    private ImageView mImageView;
+public class MainActivity extends Activity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, DataApi.DataListener, MessageApi.MessageListener, View.OnTouchListener, GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener, NodeApi.NodeListener, View.OnClickListener, GridViewPager.OnPageChangeListener {
+    private ImageView mImageViewCam, mImageViewGallery;
     private GoogleApiClient mGoogleApiClient;
     private String TAG = "WearTAG";
     private static final int REQUEST_RESOLVE_ERROR = 1001;
-    private boolean mResolvingError = false, animationRunning = false , flashOn = false;
+    private boolean mResolvingError = false, animationRunning = false, flashOn = false, isGalleryModeOn;
     private Uri uri;
     private Vector<Node> mNodeList;
     private ImageButton imgBtn1 = null, imgBtn2 = null;
     private Button counterBtn = null;
-
     private GridViewPager pager;
     private DotsPageIndicator dots;
-    private int column=2,row=1;
-    private int clockCounter = 0;
-    private GestureDetector gestures;
+    private int column = 2, row = 1, clockCounter = 0;
+    private GestureDetector gestureDetector;
     private ImageView redImageView;
     private ViewGroup container;
     private LayoutInflater inflater;
-
-    // SD card image directory
-    public static final String PHOTO_ALBUM = "wearcam";
-
-    // supported file formats
-    public static final List<String> FILE_EXTN = Arrays.asList("jpg", "jpeg",
-            "png");
-
+    public static final String PHOTO_ALBUM = "wearcam"; // SD card image directory
+    public static final List<String> FILE_EXTN = Arrays.asList("jpg", "jpeg", "png");// supported file formats
     private Utils utils;
-
-    private ArrayList<Bitmap> galleryBitmaps = new ArrayList<Bitmap>();
+    // private ArrayList<Bitmap> galleryBitmaps = new ArrayList<Bitmap>();
     private GalleryViewAdapter adapter;
     private ViewPager viewPager;
+    private float initialY;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,9 +97,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
             }
         });
 
-
-        gestures = new GestureDetector(MainActivity.this,
-                this);
+        gestureDetector = new GestureDetector(MainActivity.this, this);
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
@@ -121,14 +108,21 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         uri = null;
 
         // Gridview adapter
-        adapter = new GalleryViewAdapter(MainActivity.this,galleryBitmaps);
+        adapter = new GalleryViewAdapter(MainActivity.this);
         viewPager = new ViewPager(getApplicationContext());
-        viewPager.setAdapter(adapter);
+        if (viewPager != null) {
+            viewPager.setAdapter(adapter);
+            //viewPager.setOnTouchListener(this);
+        }
+
+        clockCounter = 0;
+
+        isGalleryModeOn = false;
     }
 
-    void startRedDotAnimation(){
+    void startRedDotAnimation() {
         redImageView.setVisibility(ImageView.VISIBLE);
-        ScaleAnimation anim = new ScaleAnimation(1.0f,1.4f,1.0f,1.4f,25,25);
+        ScaleAnimation anim = new ScaleAnimation(1.0f, 1.4f, 1.0f, 1.4f, 25, 25);
         anim.setInterpolator(new LinearInterpolator());
         anim.setRepeatCount(Animation.INFINITE);
         anim.setRepeatMode(Animation.REVERSE);
@@ -137,7 +131,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         animationRunning = true;
     }
 
-    void stopRedDotAnimation(){
+    void stopRedDotAnimation() {
         animationRunning = false;
         redImageView.setAnimation(null);
         redImageView.animate();
@@ -146,10 +140,18 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     void updateUI() {
         pager.setAdapter(new ImageAdapter(getApplication().getApplicationContext()));
-        pager.setOnPageChangeListener(this);
-        imgBtn1.setOnClickListener(this);
-        imgBtn2.setOnClickListener(this);
-        counterBtn.setOnClickListener(this);
+        if (pager != null) {
+            pager.setOnPageChangeListener(this);
+        }
+        if (imgBtn1 != null) {
+            imgBtn1.setOnClickListener(this);
+        }
+        if (imgBtn2 != null) {
+            imgBtn2.setOnClickListener(this);
+        }
+        if (counterBtn != null) {
+            counterBtn.setOnClickListener(this);
+        }
     }
 
     @Override
@@ -161,9 +163,18 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         }
         Wearable.MessageApi.addListener(mGoogleApiClient, this);
         Wearable.DataApi.addListener(mGoogleApiClient, this);
+
+        Uri uri = new Uri.Builder().scheme(PutDataRequest.WEAR_URI_SCHEME).path("/image").build();
+        Wearable.DataApi.deleteDataItems(mGoogleApiClient, uri).setResultCallback(new ResultCallback<DataApi.DeleteDataItemsResult>() {
+            @Override
+            public void onResult(DataApi.DeleteDataItemsResult deleteDataItemsResult) {
+                Log.d(TAG, "onResult of deleting /image: " + deleteDataItemsResult.getStatus().toString());
+            }
+        });
+
     }
-    
-    
+
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -183,13 +194,13 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     @Override
     protected void onDestroy() {
-        sendToPhones("stop");
+        sendToPhones("/stop");
         Wearable.DataApi.removeListener(mGoogleApiClient, this);
         Wearable.MessageApi.removeListener(mGoogleApiClient, this);
         mGoogleApiClient.disconnect();
         super.onDestroy();
     }
-    
+
     @Override
     public void onConnected(Bundle bundle) {
         Log.d(TAG, "onConnected: " + bundle);
@@ -202,7 +213,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                         mNodeList.add(n);
                         Log.d(TAG, "found node: name=" + n.getDisplayName() + ", id=" + n.getId());
                     }
-                    sendToPhones("start");
+                    sendToPhones("/start");
                 }
             }
         });
@@ -234,10 +245,9 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     @Override
     protected void onStop() {
-        sendToPhones("stop");
+        sendToPhones("/stop");
         mGoogleApiClient.disconnect();
         Log.w(TAG, "disconnected from play services");
-
         super.onStop();
     }
 
@@ -261,7 +271,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         dataEvents.close();
         for (DataEvent event : events) {
             if (event.getType() == DataEvent.TYPE_CHANGED) {
-                Log.d(TAG, "onDataChanged - TYPE_CHANGED");
+                //Log.d(TAG, "onDataChanged - TYPE_CHANGED");
                 uri = event.getDataItem().getUri();
                 String path = uri.getPath();
                 if ("/image".equals(path)) {
@@ -269,23 +279,19 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                     Asset asset = item.getDataMap().getAsset("img");
                     Bitmap bitmap = loadBitmapFromAsset(asset);
                     if (bitmap != null) {
-                        reloadImageView(bitmap,mImageView);
+                        reloadImageView(bitmap, mImageViewCam);
                     }
-
-                    Log.i("RECEIVEDIMAGE","TYPE STREAM STREAM STREAM");
-
-                }else if("/galleryimage".equals(path)){
-
+                    // Log.i("RECEIVEDIMAGE", "TYPE STREAM STREAM STREAM");
+                } else if ("/galleryimage".equals(path)) {
                     DataMapItem item = DataMapItem.fromDataItem(event.getDataItem());
-                    Asset asset = item.getDataMap().getAsset("image");
+                    Asset asset = item.getDataMap().getAsset("img");
                     Bitmap bitmap = loadBitmapFromAsset(asset);
-                    if (bitmap != null) {
-
-                        galleryBitmaps.add(bitmap);
-                        adapter.notifyDataSetChanged();
+                    if (bitmap != null && adapter != null) {
+                        //adapter.setImg(bitmap);
+                        reloadImageView(bitmap, mImageViewGallery);
+                        //adapter.notifyDataSetChanged();
                     }
-
-                    Log.i("RECEIVEDIMAGE","TYPE GALLERY GALLERY GALLERY ");
+                    Log.i("RECEIVEDIMAGE", "TYPE GALLERY GALLERY GALLERY ");
                 }
             } else if (event.getType() == DataEvent.TYPE_DELETED) {
                 Log.d(TAG, "onDataChanged - TYPE_DELETED");
@@ -293,16 +299,15 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         }
     }
 
-    private void reloadImageView(Bitmap _bitmap, final ImageView _imageView) {
-        final Bitmap bit = _bitmap;
+    private void reloadImageView(final Bitmap _bitmap, final ImageView _imageView) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                _imageView.setImageBitmap(bit);
-                //Log.d(TAG, "image was changed");
+                if (_imageView != null) {
+                    _imageView.setImageBitmap(_bitmap);
+                }
             }
         });
-
     }
 
     public Bitmap loadBitmapFromAsset(Asset asset) {
@@ -310,14 +315,12 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
             throw new IllegalArgumentException("Asset must be non-null");
         }
 
-        ConnectionResult result =
-                mGoogleApiClient.blockingConnect(100, TimeUnit.MILLISECONDS);
+        ConnectionResult result = mGoogleApiClient.blockingConnect(100, TimeUnit.MILLISECONDS);
         if (!result.isSuccess()) {
             return null;
         }
 
-        InputStream assetInputStream = Wearable.DataApi.getFdForAsset(
-                mGoogleApiClient, asset).await().getInputStream();
+        InputStream assetInputStream = Wearable.DataApi.getFdForAsset(mGoogleApiClient, asset).await().getInputStream();
 
         if (assetInputStream == null) {
             Log.w(TAG, "Requested an unknown Asset.");
@@ -329,7 +332,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     @Override
     public void onMessageReceived(MessageEvent _messageEvent) {
         final String temp = _messageEvent.getPath();
-        if (temp.equals("stop")) {
+        if (temp.equals("/stop")) {
             finish();
         }
     }
@@ -350,37 +353,35 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.imageButton1:
-                sendToPhones("flash");
+                sendToPhones("/flash");
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        if(flashOn){
-                            Toast.makeText(getApplicationContext(),"Flash off",Toast.LENGTH_SHORT).show();
+                        if (flashOn) {
+                            Toast.makeText(getApplicationContext(), "Flash off", Toast.LENGTH_SHORT).show();
                             flashOn = false;
-                        }else{
-                            Toast.makeText(getApplicationContext(),"Flash on",Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(getApplicationContext(), "Flash on", Toast.LENGTH_SHORT).show();
                             flashOn = true;
                         }
-
                     }
                 });
                 break;
 
             case R.id.imageButton2:
-                sendToPhones("change");
+                sendToPhones("/changeCam");
                 break;
 
             case R.id.imageButton3:
-                if(clockCounter < 5 ){
+                if (clockCounter < 5) {
                     clockCounter++;
                     counterBtn.setBackground(null);
                     counterBtn.setText(String.valueOf(clockCounter));
-                }else{
+                } else {
                     clockCounter = 0;
                     counterBtn.setBackground(getResources().getDrawable(android.R.drawable.ic_menu_recent_history));
                     counterBtn.setText("");
                 }
-
                 break;
         }
     }
@@ -406,14 +407,26 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     @Override
     public void onPageSelected(int i, int i1) {
-
-        if(i==0 && i1 ==0){
+        if (i == 0 && i1 == 0) {
             sendToPhones("/cam");
-            //Toast.makeText(getApplication(),"cam view",Toast.LENGTH_SHORT).show();
-
-        }else if(i == 0 && i1 ==1) {
+            //Toast.makeText(getApplication(), "cam view", Toast.LENGTH_SHORT).show();
+            isGalleryModeOn = false;
+            imgBtn1.setActivated(true);
+            imgBtn1.setVisibility(View.VISIBLE);
+            imgBtn2.setActivated(true);
+            imgBtn2.setVisibility(View.VISIBLE);
+            counterBtn.setActivated(true);
+            counterBtn.setVisibility(View.VISIBLE);
+        } else if (i == 0 && i1 == 1) {
+            isGalleryModeOn = true;
             sendToPhones("/gallery");
-            Toast.makeText(getApplication(), "gallery view", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(getApplication(), "gallery view", Toast.LENGTH_SHORT).show();
+            imgBtn1.setActivated(false);
+            imgBtn1.setVisibility(View.INVISIBLE);
+            imgBtn2.setActivated(false);
+            imgBtn2.setVisibility(View.INVISIBLE);
+            counterBtn.setActivated(false);
+            counterBtn.setVisibility(View.INVISIBLE);
         }
     }
 
@@ -446,69 +459,108 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     @Override
     public void onLongPress(MotionEvent e) {
-        Toast.makeText(getApplication(),"Long Press",Toast.LENGTH_SHORT).show();
-        if(!animationRunning){
+        if (!isGalleryModeOn && !animationRunning) {
+            sendToPhones("/takeVid");
+            Toast.makeText(getApplication(), "recording video", Toast.LENGTH_SHORT).show();
             startRedDotAnimation();
-            sendToPhones("vid");
-        }else{
-            stopRedDotAnimation();
-            sendToPhones("vid");
         }
     }
 
-
     @Override
     public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-        return true;
+        Toast.makeText(this, "onFling detected", Toast.LENGTH_SHORT).show();
+
+        /*
+        try {
+            final int SWIPE_MIN_DISTANCE = 50, SWIPE_MAX_OFF_PATH = 100, SWIPE_THRESHOLD_VELOCITY = 100;
+            if (Math.abs(e1.getX() - e2.getX()) > SWIPE_MAX_OFF_PATH) {
+                return false;
+            }
+
+            if (e1.getY() - e2.getY() > SWIPE_MIN_DISTANCE && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
+                sendToPhones("/nextPic");
+                Toast.makeText(this, "swipe down", Toast.LENGTH_SHORT).show();
+            } else if (e2.getY() - e1.getY() > SWIPE_MIN_DISTANCE && Math.abs(velocityY) > SWIPE_THRESHOLD_VELOCITY) {
+                sendToPhones("/prevPic");
+                Toast.makeText(this, "swipe up", Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            // nothing
+        }
+        */
+        return false;
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        return gestures.onTouchEvent(event);
+        int action = MotionEventCompat.getActionMasked(event);
+
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+                initialY = event.getY();
+                Log.d(TAG, "action was DOWN");
+                return true;
+
+            case MotionEvent.ACTION_UP:
+                Log.d(TAG, "action was UP");
+                float finalY = event.getY();
+                if (initialY < finalY) {
+                    Log.d(TAG, "Up to Down swipe performed");
+                    sendToPhones("/nextPic");
+                }
+                if (initialY > finalY) {
+                    Log.d(TAG, "Down to Up swipe performed");
+                    sendToPhones("/prevPic");
+                }
+                return true;
+
+            default:
+                return super.onTouchEvent(event);
+        }
     }
 
     @Override
-     public boolean onTouch(View v, MotionEvent event) {
+    public boolean onTouch(View v, MotionEvent event) {
         return false;
     }
 
     @Override
     public boolean onSingleTapConfirmed(MotionEvent e) {
+        if (!isGalleryModeOn) {
+            if (animationRunning) {
+                Toast.makeText(getApplication(), "stopping recording", Toast.LENGTH_SHORT).show();
+                stopRedDotAnimation();
+            } else {
 
-        if(animationRunning){
-            stopRedDotAnimation();
-            sendToPhones("vid");
-        }else{
+                if (clockCounter != 0) {
+                    int time = clockCounter * 1000;
+                    counterBtn.setTextColor(Color.RED);
 
-            if(clockCounter != 0){
-                int time = clockCounter *1000;
-                counterBtn.setTextColor(Color.RED);
+                    new CountDownTimer(time, 1000) {
+                        public void onTick(long millisUntilFinished) {
+                            counterBtn.setText(String.valueOf(millisUntilFinished / 1000));
+                        }
 
-                new CountDownTimer(time, 1000) {
-
-                    public void onTick(long millisUntilFinished) {
-                        counterBtn.setText(String.valueOf(millisUntilFinished / 1000));
-                    }
-
-                    public void onFinish() {
-                        counterBtn.setText("");
-                        counterBtn.setBackground(getResources().getDrawable(android.R.drawable.ic_menu_recent_history));
-                        counterBtn.setTextColor(Color.WHITE);
-                        sendToPhones("pic");
-                    }
-                }.start();
-
-            }else{
-                sendToPhones("pic");
+                        public void onFinish() {
+                            Toast.makeText(getApplication(), "taking a picture", Toast.LENGTH_SHORT).show();
+                            counterBtn.setText("");
+                            counterBtn.setBackground(getResources().getDrawable(android.R.drawable.ic_menu_recent_history));
+                            counterBtn.setTextColor(Color.WHITE);
+                            sendToPhones("/takePic");
+                        }
+                    }.start();
+                } else {
+                    Toast.makeText(getApplication(), "taking a picture", Toast.LENGTH_SHORT).show();
+                    sendToPhones("/takePic");
+                }
             }
-
         }
         return true;
     }
 
     @Override
     public boolean onDoubleTap(MotionEvent e) {
-        Toast.makeText(getApplication(),"Double Tap",Toast.LENGTH_SHORT).show();
+        //Toast.makeText(getApplication(), "Double Tap", Toast.LENGTH_SHORT).show();
         return false;
     }
 
@@ -518,9 +570,9 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     }
 
     public class ImageAdapter extends GridPagerAdapter implements View.OnTouchListener {
-       final Context mContext;
+        final Context mContext;
 
-        public ImageAdapter(final Context context){
+        public ImageAdapter(final Context context) {
             mContext = context;
         }
 
@@ -540,21 +592,18 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         }
 
         @Override
-        public Object instantiateItem(ViewGroup viewGroup, int i, int i1) {
-
-            ImageView imageView;
-            imageView = new ImageView(mContext);
-
-            if(i==0&&i1==0){
-                mImageView = imageView;
-                mImageView.setOnTouchListener(this);
-                viewGroup.addView(imageView);
-                galleryBitmaps = null;
-                galleryBitmaps = new ArrayList<Bitmap>();
-                return imageView;
-
-            }else {
-
+        public Object instantiateItem(ViewGroup viewGroup, int _row, int _col) {
+            if (_row == 0 && _col == 0) {
+                mImageViewCam = new ImageView(mContext);
+                mImageViewCam.setOnTouchListener(this);
+                viewGroup.addView(mImageViewCam);
+                return mImageViewCam;
+            } else if (_row == 0 && _col == 1) {
+                mImageViewGallery = new ImageView(mContext);
+                mImageViewGallery.setOnTouchListener(this);
+                viewGroup.addView(mImageViewGallery);
+                return mImageViewGallery;
+            } else {
                 viewGroup.addView(viewPager);
                 return viewPager;
             }
@@ -562,7 +611,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
         @Override
         public void destroyItem(ViewGroup viewGroup, int i, int i1, Object o) {
-             viewGroup.removeView((View) o);
+            viewGroup.removeView((View) o);
         }
 
         @Override
@@ -573,12 +622,14 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
         @Override
         public boolean onTouch(View v, MotionEvent event) {
-            if(v==mImageView){
-                if(gestures.onTouchEvent(event)){
+            if (v == mImageViewCam) {
+                if (gestureDetector.onTouchEvent(event)) {
                     return true;
                 }
-            }else{
-                //touch event for 2nd imageView
+            } else if (v == mImageViewGallery) {
+                if (gestureDetector.onTouchEvent(event)) {
+                    return true;
+                }
             }
             return false;
         }

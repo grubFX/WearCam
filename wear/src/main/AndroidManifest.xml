@@ -17,7 +17,7 @@
         <activity
             android:name="mc.fhooe.at.wearcam.MainActivity"
             android:label="@string/app_name"
-            android:launchMode="singleTask">
+            android:launchMode="singleInstance">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="com.google.android.gms.wearable.BIND_LISTENER" />

@@ -29,9 +29,7 @@ public class Utils {
     public static final String PHOTO_ALBUM = "wearcam";
 
     // supported file formats
-    public static final List<String> FILE_EXTN = Arrays.asList("jpg", "jpeg",
-            "png");
-
+    public static final List<String> FILE_EXTN = Arrays.asList("jpg", "jpeg", "png");
 
 
     private Context _context;
@@ -45,9 +43,7 @@ public class Utils {
     public ArrayList<String> getFilePaths() {
         ArrayList<String> filePaths = new ArrayList<String>();
 
-        File directory = new File(
-                Environment.getExternalStorageDirectory()
-                        + File.separator + PHOTO_ALBUM);
+        File directory = new File(Environment.getExternalStorageDirectory() + File.separator + PHOTO_ALBUM);
 
         // check for directory
         if (directory.isDirectory()) {
@@ -71,18 +67,13 @@ public class Utils {
                 }
             } else {
                 // image directory is empty
-                Toast.makeText(
-                        _context,
-                        PHOTO_ALBUM
-                                + " is empty. Please load some images in it !",
-                        Toast.LENGTH_LONG).show();
+                Toast.makeText(_context, PHOTO_ALBUM + " is empty. Please load some images in it !", Toast.LENGTH_LONG).show();
             }
 
         } else {
             AlertDialog.Builder alert = new AlertDialog.Builder(_context);
             alert.setTitle("Error!");
-            alert.setMessage(PHOTO_ALBUM
-                    + " directory path is not valid! Please set the image directory name AppConstant.java class");
+            alert.setMessage(PHOTO_ALBUM + " directory path is not valid! Please set the image directory name AppConstant.java class");
             alert.setPositiveButton("OK", null);
             alert.show();
         }
@@ -92,11 +83,9 @@ public class Utils {
 
     // Check supported file extensions
     private boolean IsSupportedFile(String filePath) {
-        String ext = filePath.substring((filePath.lastIndexOf(".") + 1),
-                filePath.length());
+        String ext = filePath.substring((filePath.lastIndexOf(".") + 1), filePath.length());
 
-        if (FILE_EXTN
-                .contains(ext.toLowerCase(Locale.getDefault())))
+        if (FILE_EXTN.contains(ext.toLowerCase(Locale.getDefault())))
             return true;
         else
             return false;
@@ -108,8 +97,7 @@ public class Utils {
      */
     public int getScreenWidth() {
         int columnWidth;
-        WindowManager wm = (WindowManager) _context
-                .getSystemService(Context.WINDOW_SERVICE);
+        WindowManager wm = (WindowManager) _context.getSystemService(Context.WINDOW_SERVICE);
         Display display = wm.getDefaultDisplay();
 
         final Point point = new Point();
