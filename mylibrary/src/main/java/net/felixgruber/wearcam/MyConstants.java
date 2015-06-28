@@ -1,4 +1,4 @@
-package mc.fhooe.at.wearcam;
+package net.felixgruber.wearcam;
 
 public class MyConstants {
     public static final String PATH_CAM = "/cam";

@@ -1,4 +1,4 @@
-package mc.fhooe.at.wearcam;
+package net.felixgruber.wearcam;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -51,6 +51,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.TimeUnit;
+
+import mc.fhooe.at.wearcam.R;
 
 public class MainActivity extends Activity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, DataApi.DataListener, MessageApi.MessageListener, View.OnTouchListener, GestureDetector.OnGestureListener, GestureDetector.OnDoubleTapListener, NodeApi.NodeListener, View.OnClickListener, GridViewPager.OnPageChangeListener {
     private ImageView mImageViewCam, mImageViewGallery;

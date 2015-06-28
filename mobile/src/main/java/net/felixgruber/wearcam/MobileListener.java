@@ -1,4 +1,4 @@
-package mc.fhooe.at.wearcam;
+package net.felixgruber.wearcam;
 
 import android.app.PendingIntent;
 import android.content.Intent;

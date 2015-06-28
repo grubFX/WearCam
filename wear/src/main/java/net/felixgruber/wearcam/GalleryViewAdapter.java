@@ -1,4 +1,4 @@
-package mc.fhooe.at.wearcam;
+package net.felixgruber.wearcam;
 
 import android.app.Activity;
 import android.content.Context;
@@ -10,6 +10,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
+
+import mc.fhooe.at.wearcam.R;
 
 /**
  * Created by Musti on 12.06.2015.

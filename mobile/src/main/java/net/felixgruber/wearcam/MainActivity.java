@@ -1,4 +1,4 @@
-package mc.fhooe.at.wearcam;
+package net.felixgruber.wearcam;
 
 import android.app.Activity;
 import android.content.Context;
@@ -61,6 +61,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
+
+import mc.fhooe.at.wearcam.R;
 
 public class MainActivity extends Activity implements DataApi.DataListener, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, Camera.PreviewCallback, MessageListener, NodeApi.NodeListener, SurfaceHolder.Callback, Camera.PictureCallback, Camera.ShutterCallback, View.OnTouchListener {
     private GoogleApiClient mGoogleApiClient;
