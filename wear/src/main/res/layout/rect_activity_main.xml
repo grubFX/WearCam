@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    style="@android:style/Widget.Material"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:baselineAligned="false"
@@ -12,49 +13,62 @@
         android:id="@+id/page_indicator"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal|bottom">
-    </android.support.wearable.view.DotsPageIndicator>
+        android:layout_gravity="center_horizontal|bottom" />
 
     <android.support.wearable.view.GridViewPager
         android:id="@+id/pager"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:keepScreenOn="true"
-        android:layout_gravity="left|center_vertical" />
+        android:layout_gravity="left|center_vertical"
+        android:keepScreenOn="true" />
 
     <ImageView
+        android:id="@+id/redDotView"
         android:layout_width="50px"
         android:layout_height="50px"
-        android:id="@+id/redDotView"
         android:layout_gravity="right|top"
         android:src="@drawable/reddot"
         android:visibility="invisible" />
 
     <ImageButton
+        android:id="@+id/imageButton1"
         android:layout_width="50dp"
         android:layout_height="50dp"
-        android:id="@+id/imageButton1"
         android:layout_gravity="left|bottom"
-        android:src="@drawable/ic_action_flash_on"
         android:clickable="true"
-        android:scaleType="centerInside" />
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_action_flash_on" />
 
     <ImageButton
+        android:id="@+id/imageButton2"
         android:layout_width="50dp"
         android:layout_height="50dp"
-        android:id="@+id/imageButton2"
         android:layout_gravity="right|bottom"
-        android:src="@drawable/ic_action_switch_camera"
         android:clickable="true"
-        android:scaleType="centerInside" />
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_action_switch_camera" />
+
+    <Button
+        android:id="@+id/imageButton3"
+        style="@android:style/Widget.Material.Button.Borderless"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background="@android:drawable/ic_menu_recent_history"
+                android:clickable="true" />
 
     <Button
         style="?android:attr/buttonStyleSmall"
         android:layout_width="50dp"
         android:layout_height="50dp"
-        android:id="@+id/imageButton3"
-        android:layout_gravity="left|top"
-        android:background="@android:drawable/ic_menu_recent_history"
-        android:clickable="true" />
+        android:id="@+id/button_up"
+        android:layout_gravity="center_horizontal|top"
+        android:background="@drawable/ic_action_up" />
 
+    <Button
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:id="@+id/button_down"
+        android:layout_gravity="center_horizontal|bottom"
+        android:background="@drawable/ic_action_down" />
 </FrameLayout>

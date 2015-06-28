@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -6,67 +7,78 @@
 
     <SurfaceView
         android:id="@+id/surfaceView"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
         android:layout_centerVertical="true" />
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="takePicture"
-        android:id="@+id/pictureButton"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true" />
-
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="makeVideo"
-        android:id="@+id/videoButton"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentEnd="true" />
-
     <ImageView
+        android:id="@+id/redDotPhoneImage"
         android:layout_width="200px"
         android:layout_height="200px"
-        android:id="@+id/redDotPhoneImage"
-        android:src="@mipmap/reddot"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
-        android:visibility="visible"
-        android:alpha="0" />
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:alpha="0"
+        android:src="@mipmap/reddot"
+        android:visibility="visible" />
 
-    <ImageButton
+    <LinearLayout
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/flashlightButton"
-        android:src="@android:drawable/ic_lock_idle_low_battery"
-        android:layout_alignTop="@+id/pictureButton"
-        android:layout_toRightOf="@+id/pictureButton"
-        android:layout_toEndOf="@+id/pictureButton" />
-
-    <ImageButton
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/changeCameraButton"
-        android:src="@android:drawable/ic_menu_always_landscape_portrait"
-        android:layout_alignBottom="@+id/flashlightButton"
-        android:layout_toStartOf="@+id/videoButton"
-        android:layout_alignTop="@+id/videoButton"
-        android:layout_toLeftOf="@+id/videoButton" />
-
-    <Button
-        style="?android:attr/buttonStyleSmall"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="G"
-        android:id="@+id/galleryButton"
-        android:layout_above="@+id/flashlightButton"
+        android:layout_height="50dp"
+        android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
-        android:visibility="invisible" />
+        android:gravity="bottom|center_horizontal"
+        android:longClickable="false"
+        android:measureWithLargestChild="false"
+        android:orientation="horizontal">
 
+        <ImageButton
+            android:id="@+id/pictureButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_weight="1"
+            android:baselineAlignBottom="true"
+            android:cropToPadding="false"
+            android:longClickable="false"
+            android:maxWidth="50dp"
+            android:nestedScrollingEnabled="false"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_action_camera" />
+
+        <ImageButton
+            android:id="@+id/flashlightButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_weight="1"
+            android:baselineAlignBottom="true"
+            android:maxWidth="50dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_action_flash_on" />
+
+        <ImageButton
+            android:id="@+id/changeCameraButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_weight="1"
+            android:baselineAlignBottom="true"
+            android:maxWidth="50dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_action_switch_camera" />
+
+        <ImageButton
+            android:id="@+id/videoButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_weight="1"
+            android:baselineAlignBottom="true"
+            android:longClickable="false"
+            android:maxWidth="50dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_action_video" />
+    </LinearLayout>
 </RelativeLayout>

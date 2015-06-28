@@ -3,7 +3,6 @@ package mc.fhooe.at.wearcam;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Point;
-import android.os.Environment;
 import android.view.Display;
 import android.view.WindowManager;
 import android.widget.Toast;
@@ -31,7 +30,6 @@ public class Utils {
     // supported file formats
     public static final List<String> FILE_EXTN = Arrays.asList("jpg", "jpeg",
             "png");
-
 
 
     private Context _context;
@@ -100,7 +98,6 @@ public class Utils {
             return true;
         else
             return false;
-
     }
 
     /*

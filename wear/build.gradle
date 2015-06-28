@@ -6,7 +6,7 @@ android {
     buildToolsVersion '23.0.0 rc2'
     defaultConfig {
         applicationId "mc.fhooe.at.wearcam"
-        minSdkVersion 20
+        minSdkVersion 21
         targetSdkVersion 22
         versionCode 1
         versionName '0.2'
@@ -22,6 +22,7 @@ android {
 }
 
 dependencies {
+    compile project(':mylibrary')
     compile 'com.google.android.gms:play-services:7.5.0'
     compile 'com.google.android.support:wearable:+'
     compile 'com.google.android.gms:play-services-wearable:+'
