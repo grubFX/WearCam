@@ -497,9 +497,11 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
             changeView();
 
         } else if (temp.equals(MyConstants.PATH_GALLERY)) {
+            imagePaths = utils.getFilePaths();
+            index = index % imagePaths.size();
             isGalleryModeOn = true;
             changeView();
-            sendStoredImageToPhone(index);
+            sendStoredImageToPhone();
         } else if (temp.equals(MyConstants.PATH_STOP)) {
             finish();
         } else if (temp.equals(MyConstants.PATH_TAKE_PIC)) {
@@ -531,11 +533,15 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
                 }
             });
         } else if (temp.equals(MyConstants.PATH_NEXT_PIC)) {
-            sendStoredImageToPhone((++index) % imagePaths.size());
+            imagePaths = utils.getFilePaths();
+            index++;
+            sendStoredImageToPhone();
         } else if (temp.equals(MyConstants.PATH_PREV_PIC)) {
-            sendStoredImageToPhone((--index) % imagePaths.size());
+            imagePaths = utils.getFilePaths();
+            index--;
+            sendStoredImageToPhone();
         } else if (temp.equals(MyConstants.PATH_DELETE_PIC)) {
-            deleteImageFromPhone(index);
+            deleteImageFromPhone();
         }
         runOnUiThread(new Runnable() {
             @Override
@@ -545,11 +551,10 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         });
     }
 
-    private void sendStoredImageToPhone(int _index) {
-        //for (int i = 0; i < imagePaths.size(); i++) {
+    private void sendStoredImageToPhone() {
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-        Bitmap bitmap = BitmapFactory.decodeFile(imagePaths.get(_index), options);
+        Bitmap bitmap = BitmapFactory.decodeFile(imagePaths.get(index % imagePaths.size()), options);
         Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, bitmap.getWidth() / 2, bitmap.getHeight() / 2, true);
         Asset asset = createAssetFromBitmap(resizedBitmap);
         PutDataMapRequest dataMap = PutDataMapRequest.create(MyConstants.PATH_GALLERY_IMAGE);
@@ -565,7 +570,6 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
                 Log.i(TAG, "onResult of sending data: " + dataItemResult.getStatus());
             }
         });
-        //}
     }
 
     public void changeView() {
@@ -640,19 +644,16 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         });
 
         if (cam != null) {
+            cam.stopPreview();
             cam.setPreviewCallback(null);
+            cam.release();
+            cam = null;
         }
 
         if (surf != null) {
             surf.getHolder().removeCallback(this);
             surf.setOnTouchListener(null);
             surf = null;
-        }
-
-        if (cam != null) {
-            cam.stopPreview();
-            cam.release();
-            cam = null;
         }
     }
 
@@ -896,12 +897,13 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         });
     }
 
-    private void deleteImageFromPhone(int _index) {
-        File file = new File(imagePaths.get(_index));
+    private void deleteImageFromPhone() {
+        index = index % imagePaths.size();
+        File file = new File(imagePaths.get(index));
         if (file.exists()) {
             file.delete();
             imagePaths = utils.getFilePaths();
-            sendStoredImageToPhone(index % (imagePaths.size()));
+            sendStoredImageToPhone();
         }
     }
 }
