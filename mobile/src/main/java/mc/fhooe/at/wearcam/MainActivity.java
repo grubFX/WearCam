@@ -7,6 +7,7 @@ import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.Camera;
@@ -19,6 +20,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
+import android.view.Display;
 import android.view.Menu;
 import android.view.MotionEvent;
 import android.view.OrientationEventListener;
@@ -64,7 +66,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     private GoogleApiClient mGoogleApiClient;
     private String TAG = "PhoneTag", path = null;
     private int currentCameraId = Camera.CameraInfo.CAMERA_FACING_BACK, index, angleRotateMatrix, anglePreview;
-    private static final int REQUEST_RESOLVE_ERROR = 1001, IMG_SIZE = 200, QUALITY_IN_PERCENT = 20;
+    private static final int REQUEST_RESOLVE_ERROR = 1001;
     private Camera cam;
     private boolean mResolvingError = false, isRecording = false, isFlashModeOn = false, isGalleryModeOn = false;
     private SurfaceView surf;
@@ -72,7 +74,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     private MediaRecorder recorder;
     private ImageView redDotView;
     private ImageButton flashButton, changeCamButton, pictureButton, videoButton;
-    private float mDist;
+    private double mDist;
     private Vector<Node> mNodeList;
     private OrientationEventListener mOrientationEventListener;
     private Utils utils;
@@ -161,8 +163,8 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     }
 
     void changeCamera() {
+        deleteOldDataItems();
         destroyCam();
-
         if (currentCameraId == Camera.CameraInfo.CAMERA_FACING_BACK)
             currentCameraId = Camera.CameraInfo.CAMERA_FACING_FRONT;
         else {
@@ -254,7 +256,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         recorder.setCamera(cam);
 
         //setorientation
-        recorder.setOrientationHint(getRoatationAngle(this, currentCameraId));
+        recorder.setOrientationHint(getRotationAngle(this, currentCameraId));
 
         // Step 2: Set sources
         recorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
@@ -294,6 +296,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     @Override
     public void onConnected(Bundle bundle) {
         Log.d(TAG, "onConnected: " + bundle);
+        deleteOldDataItems();
         Wearable.NodeApi.getConnectedNodes(mGoogleApiClient).setResultCallback(new ResultCallback<NodeApi.GetConnectedNodesResult>() {
             @Override
             public void onResult(NodeApi.GetConnectedNodesResult getConnectedNodesResult) {
@@ -341,13 +344,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
             mGoogleApiClient.connect();
             Log.d(TAG, "connedted, jippieeeeeeee!!!!! ");
         }
-        Uri uri = new Uri.Builder().scheme(PutDataRequest.WEAR_URI_SCHEME).path(MyConstants.PATH_IMAGE).build();
-        Wearable.DataApi.deleteDataItems(mGoogleApiClient, uri).setResultCallback(new ResultCallback<DataApi.DeleteDataItemsResult>() {
-            @Override
-            public void onResult(DataApi.DeleteDataItemsResult deleteDataItemsResult) {
-                Log.d(TAG, "onResult of deleting /image: " + deleteDataItemsResult.getStatus().toString());
-            }
-        });
+        deleteOldDataItems();
     }
 
     @Override
@@ -394,6 +391,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     @Override
     protected void onPause() {
         super.onPause();
+        deleteOldDataItems();
         Wearable.MessageApi.removeListener(mGoogleApiClient, this);
         mGoogleApiClient.disconnect();
         mOrientationEventListener.disable();
@@ -440,17 +438,25 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         if (!isGalleryModeOn && camera != null) {
             final byte[] arr = data.clone();
             YuvImage temp = new YuvImage(arr, camera.getParameters().getPreviewFormat(), camera.getParameters().getPictureSize().width, camera.getParameters().getPictureSize().height, null);
-            ByteArrayOutputStream os = new ByteArrayOutputStream();
-            temp.compressToJpeg(new Rect(0, 0, temp.getWidth(), temp.getHeight()), QUALITY_IN_PERCENT, os);
-            Bitmap preview = Bitmap.createScaledBitmap(BitmapFactory.decodeByteArray(os.toByteArray(), 0, os.toByteArray().length), IMG_SIZE, IMG_SIZE, false);
+            ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+            temp.compressToJpeg(new Rect(0, 0, temp.getWidth(), temp.getHeight()), MyConstants.MOBILE_IMAGE_QUALITIY_IN_PERCENT, byteStream);
+            Bitmap preview = BitmapFactory.decodeByteArray(byteStream.toByteArray(), 0, byteStream.toByteArray().length);
+            float ratioBitmap = (float) preview.getWidth() / (float) preview.getHeight();
+            int finalWidth = MyConstants.MOBILE_IMG_SIZE, finalHeight = MyConstants.MOBILE_IMG_SIZE;
+            if (ratioBitmap > 1) {
+                finalWidth = (int) ((float) MyConstants.MOBILE_IMG_SIZE * ratioBitmap);
+            } else {
+                finalHeight = (int) ((float) MyConstants.MOBILE_IMG_SIZE / ratioBitmap);
+            }
+            preview = Bitmap.createScaledBitmap(preview, finalWidth, finalHeight, true);
             Matrix m = new Matrix();
             m.postRotate(angleRotateMatrix + anglePreview);
-            Bitmap rotatedBitmap = Bitmap.createBitmap(preview, 0, 0, preview.getWidth(), preview.getHeight(), m, true);
+            preview = Bitmap.createBitmap(preview, 0, 0, preview.getWidth(), preview.getHeight(), m, true);
             Asset asset = null;
-            ByteArrayOutputStream byteStream = null;
+            byteStream = null;
             try {
                 byteStream = new ByteArrayOutputStream();
-                rotatedBitmap.compress(Bitmap.CompressFormat.WEBP, QUALITY_IN_PERCENT, byteStream);
+                preview.compress(Bitmap.CompressFormat.WEBP, MyConstants.MOBILE_IMAGE_QUALITIY_IN_PERCENT, byteStream);
                 asset = Asset.createFromBytes(byteStream.toByteArray());
             } finally {
                 if (byteStream != null) {
@@ -477,6 +483,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
                 });
             }
         }
+
     }
 
     @Override
@@ -527,6 +534,8 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
             sendStoredImageToPhone((++index) % imagePaths.size());
         } else if (temp.equals(MyConstants.PATH_PREV_PIC)) {
             sendStoredImageToPhone((--index) % imagePaths.size());
+        } else if (temp.equals(MyConstants.PATH_DELETE_PIC)) {
+            deleteImageFromPhone(index);
         }
         runOnUiThread(new Runnable() {
             @Override
@@ -572,6 +581,16 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     }
 
     private boolean setupCam() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                changeCamButton.setEnabled(true);
+                flashButton.setEnabled(true);
+                pictureButton.setEnabled(true);
+                videoButton.setEnabled(true);
+            }
+        });
+
         surf = (SurfaceView) findViewById(R.id.surfaceView);
         if (surf != null) {
             surf.setOnTouchListener(this);
@@ -589,11 +608,17 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         try {
             cam = Camera.open(currentCameraId);
             if (cam != null) {
-                int tempAngle = getRoatationAngle(this, currentCameraId);
+                int tempAngle = getRotationAngle(this, currentCameraId);
                 cam.setDisplayOrientation(tempAngle);
                 cam.setPreviewCallback(this);
                 cam.setPreviewDisplay(mHolder);
                 cam.startPreview();
+                Camera.Parameters params = cam.getParameters();
+                Display display = getWindowManager().getDefaultDisplay();
+                Point size = new Point();
+                display.getSize(size);
+                surf.getLayoutParams().width = size.x;
+                surf.getLayoutParams().height = (int) (size.x * params.getPreviewSize().width / params.getPreviewSize().height);
                 return true;
             } else {
                 return false;
@@ -604,14 +629,28 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     }
 
     private void destroyCam() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                changeCamButton.setEnabled(false);
+                flashButton.setEnabled(false);
+                pictureButton.setEnabled(false);
+                videoButton.setEnabled(false);
+            }
+        });
+
+        if (cam != null) {
+            cam.setPreviewCallback(null);
+        }
+
         if (surf != null) {
             surf.getHolder().removeCallback(this);
             surf.setOnTouchListener(null);
             surf = null;
         }
+
         if (cam != null) {
             cam.stopPreview();
-            cam.setPreviewCallback(null);
             cam.release();
             cam = null;
         }
@@ -670,7 +709,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     private void handleZoom(MotionEvent event, Camera.Parameters params) {
         int maxZoom = params.getMaxZoom();
         int zoom = params.getZoom();
-        float newDist = getFingerSpacing(event);
+        double newDist = getFingerSpacing(event);
         if (newDist > mDist) {
             //zoom in
             if (zoom < maxZoom)
@@ -708,11 +747,10 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     /**
      * Determine the space between the first two fingers
      */
-    private float getFingerSpacing(MotionEvent event) {
-        // ...
-        float x = event.getX(0) - event.getX(1);
-        float y = event.getY(0) - event.getY(1);
-        return (float) Math.sqrt(x * x + y * y);
+    private double getFingerSpacing(MotionEvent event) {
+        double x = event.getX(0) - event.getX(1);
+        double y = event.getY(0) - event.getY(1);
+        return Math.sqrt(x * x + y * y);
     }
 
     @Override
@@ -728,7 +766,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
      * @param cameraId probably front cam
      * @return angel to rotate
      */
-    public static int getRoatationAngle(Activity mContext, int cameraId) {
+    public static int getRotationAngle(Activity mContext, int cameraId) {
         android.hardware.Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
         android.hardware.Camera.getCameraInfo(cameraId, info);
         int rotation = mContext.getWindowManager().getDefaultDisplay().getRotation();
@@ -793,7 +831,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        int angleToRotate = getRoatationAngle(this, currentCameraId);
+        int angleToRotate = getRotationAngle(this, currentCameraId);
         if (cam != null) {
             cam.setDisplayOrientation(angleToRotate);
         }
@@ -811,7 +849,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     @Override
     public void onPictureTaken(byte[] data, Camera camera) {
         if (data != null) {
-            int angleToRotate = getRoatationAngle(MainActivity.this, currentCameraId);
+            int angleToRotate = getRotationAngle(MainActivity.this, currentCameraId);
             Bitmap orignalImage = BitmapFactory.decodeByteArray(data, 0, data.length);
             // TODO: front camera portrait picture is reverted
             Bitmap bitmap = rotate(orignalImage, angleToRotate);
@@ -846,5 +884,24 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     public void onShutter() {
         AudioManager mgr = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         mgr.playSoundEffect(AudioManager.FLAG_PLAY_SOUND);
+    }
+
+    private void deleteOldDataItems() {
+        Uri uri = new Uri.Builder().scheme(PutDataRequest.WEAR_URI_SCHEME).path(MyConstants.PATH_IMAGE).build();
+        Wearable.DataApi.deleteDataItems(mGoogleApiClient, uri).setResultCallback(new ResultCallback<DataApi.DeleteDataItemsResult>() {
+            @Override
+            public void onResult(DataApi.DeleteDataItemsResult deleteDataItemsResult) {
+                Log.d(TAG, "onResult of deleting " + MyConstants.PATH_IMAGE + ": " + deleteDataItemsResult.getStatus().toString());
+            }
+        });
+    }
+
+    private void deleteImageFromPhone(int _index) {
+        File file = new File(imagePaths.get(_index));
+        if (file.exists()) {
+            file.delete();
+            imagePaths = utils.getFilePaths();
+            sendStoredImageToPhone(index % (imagePaths.size()));
+        }
     }
 }

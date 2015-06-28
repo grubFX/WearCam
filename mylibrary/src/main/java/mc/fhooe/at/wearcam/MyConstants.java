@@ -13,7 +13,11 @@ public class MyConstants {
     public static final String PATH_PREV_PIC = "/prevPic";
     public static final String PATH_IMAGE = "/image";
     public static final String PATH_GALLERY_IMAGE = "/galleryImage";
+    public static final String PATH_DELETE_PIC = "/deletePic";
 
     public static final String DATA_ITEM_IMAGE = "img";
     public static final String DATA_ITEM_TIMESTAMP = "timestamp";
+
+    public static final int MOBILE_IMG_SIZE = 200;
+    public static final int MOBILE_IMAGE_QUALITIY_IN_PERCENT = 20;
 }

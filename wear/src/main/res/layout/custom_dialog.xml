@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.wearable.view.BoxInsetLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/custom_dialog_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#ffffff">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        app:layout_box="all">
+
+        <FrameLayout
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent">
+
+            <android.support.wearable.view.CircledImageView
+                android:id="@+id/cancel_btn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="left|bottom"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                app:circle_color="@color/red"
+                app:circle_radius="25dp"
+                app:circle_radius_pressed="20dp"
+                android:nestedScrollingEnabled="false"
+                android:layout_margin="25dp"
+                android:clickable="true" />
+
+            <android.support.wearable.view.CircledImageView
+                android:id="@+id/ok_btn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="right|bottom"
+                android:src="@android:drawable/ic_menu_delete"
+                app:circle_color="@color/green"
+                app:circle_radius="25dp"
+                app:circle_radius_pressed="20dp"
+                android:layout_margin="25dp"
+                android:background="@android:drawable/ic_menu_delete"
+                android:clickable="true" />
+
+            <TextView
+                android:id="@+id/description"
+                android:layout_width="match_parent"
+                android:layout_height="105dp"
+                android:gravity="center_horizontal"
+                android:autoText="false"
+                android:text="Delete this picture?"
+                style="@style/Base.TextAppearance.AppCompat.Large"
+                android:layout_gravity="center_horizontal|top"
+                android:layout_margin="30dp"
+                android:textColor="#000000" />
+
+        </FrameLayout>
+
+    </LinearLayout>
+</android.support.wearable.view.BoxInsetLayout>

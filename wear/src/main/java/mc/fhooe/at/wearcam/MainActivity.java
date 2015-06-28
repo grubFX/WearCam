@@ -1,6 +1,7 @@
 package mc.fhooe.at.wearcam;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
@@ -60,7 +61,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     private Uri uri;
     private Vector<Node> mNodeList;
     private ImageButton imgBtn1 = null, imgBtn2 = null;
-    private Button counterBtn = null;
+    private Button counterBtn = null, buttonUp = null, buttonDown = null;
     private GridViewPager pager;
     private DotsPageIndicator dots;
     private int column = 2, row = 1, clockCounter = 0;
@@ -89,6 +90,8 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                 imgBtn1 = (ImageButton) findViewById(R.id.imageButton1);
                 imgBtn2 = (ImageButton) findViewById(R.id.imageButton2);
                 counterBtn = (Button) findViewById(R.id.imageButton3);
+                buttonUp = (Button) findViewById(R.id.button_up);
+                buttonDown = (Button) findViewById(R.id.button_down);
                 updateUI();
             }
         });
@@ -147,6 +150,14 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         if (counterBtn != null) {
             counterBtn.setOnClickListener(this);
         }
+        if (buttonUp != null) {
+            buttonUp.setVisibility(View.INVISIBLE);
+            buttonUp.setEnabled(false);
+        }
+        if (buttonDown != null) {
+            buttonDown.setVisibility(View.INVISIBLE);
+            buttonDown.setEnabled(false);
+        }
     }
 
     @Override
@@ -158,20 +169,13 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         }
         Wearable.MessageApi.addListener(mGoogleApiClient, this);
         Wearable.DataApi.addListener(mGoogleApiClient, this);
-
-        Uri uri = new Uri.Builder().scheme(PutDataRequest.WEAR_URI_SCHEME).path(MyConstants.PATH_IMAGE).build();
-        Wearable.DataApi.deleteDataItems(mGoogleApiClient, uri).setResultCallback(new ResultCallback<DataApi.DeleteDataItemsResult>() {
-            @Override
-            public void onResult(DataApi.DeleteDataItemsResult deleteDataItemsResult) {
-                Log.d(TAG, "onResult of deleting " + MyConstants.PATH_IMAGE + ": " + deleteDataItemsResult.getStatus().toString());
-            }
-        });
     }
 
 
     @Override
     protected void onResume() {
         super.onResume();
+        deleteOldDataItems();
         Wearable.DataApi.addListener(mGoogleApiClient, this);
         mGoogleApiClient.connect();
         Log.d(TAG, "connect called in onResume Method");
@@ -179,10 +183,11 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     @Override
     protected void onPause() {
-        super.onPause();
+        deleteOldDataItems();
         mGoogleApiClient.disconnect();
         Wearable.DataApi.removeListener(mGoogleApiClient, this);
         Log.d(TAG, "disconnected in onPause Method");
+        super.onPause();
     }
 
 
@@ -351,6 +356,8 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        Toast.makeText(getApplicationContext(), "flash toggled", Toast.LENGTH_SHORT).show();
+                        /* wenn user am handy aufm flash button drückt is des verkehrt, darum auskommentiert
                         if (flashOn) {
                             Toast.makeText(getApplicationContext(), "Flash off", Toast.LENGTH_SHORT).show();
                             flashOn = false;
@@ -358,12 +365,14 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                             Toast.makeText(getApplicationContext(), "Flash on", Toast.LENGTH_SHORT).show();
                             flashOn = true;
                         }
+                        */
                     }
                 });
                 break;
 
             case R.id.imageButton2:
                 sendToPhones(MyConstants.PATH_CHANGE_CAM);
+                deleteOldDataItems();
                 break;
 
             case R.id.imageButton3:
@@ -376,6 +385,14 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                     counterBtn.setBackground(getResources().getDrawable(android.R.drawable.ic_menu_recent_history));
                     counterBtn.setText("");
                 }
+                break;
+
+            case R.id.button_up:
+                sendToPhones(MyConstants.PATH_NEXT_PIC);
+                break;
+
+            case R.id.button_down:
+                sendToPhones(MyConstants.PATH_PREV_PIC);
                 break;
         }
     }
@@ -403,7 +420,6 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     public void onPageSelected(int i, int i1) {
         if (i == 0 && i1 == 0) {
             sendToPhones(MyConstants.PATH_CAM);
-            //Toast.makeText(getApplication(), "cam view", Toast.LENGTH_SHORT).show();
             isGalleryModeOn = false;
             imgBtn1.setActivated(true);
             imgBtn1.setVisibility(View.VISIBLE);
@@ -411,16 +427,28 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
             imgBtn2.setVisibility(View.VISIBLE);
             counterBtn.setActivated(true);
             counterBtn.setVisibility(View.VISIBLE);
+            buttonUp.setActivated(false);
+            buttonUp.setVisibility(View.INVISIBLE);
+            buttonDown.setActivated(false);
+            buttonDown.setVisibility(View.INVISIBLE);
         } else if (i == 0 && i1 == 1) {
             isGalleryModeOn = true;
             sendToPhones(MyConstants.PATH_GALLERY);
-            //Toast.makeText(getApplication(), "gallery view", Toast.LENGTH_SHORT).show();
             imgBtn1.setActivated(false);
             imgBtn1.setVisibility(View.INVISIBLE);
             imgBtn2.setActivated(false);
             imgBtn2.setVisibility(View.INVISIBLE);
             counterBtn.setActivated(false);
             counterBtn.setVisibility(View.INVISIBLE);
+
+            /*
+            buttonUp.setActivated(true);
+            buttonUp.setVisibility(View.VISIBLE);
+            buttonUp.setOnClickListener(this);
+            buttonDown.setActivated(true);
+            buttonDown.setVisibility(View.VISIBLE);
+            buttonDown.setOnClickListener(this);
+            */
         }
     }
 
@@ -458,10 +486,50 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     @Override
     public void onLongPress(MotionEvent e) {
-        if (!isGalleryModeOn && !animationRunning) {
-            sendToPhones(MyConstants.PATH_TAKE_VID);
-            Toast.makeText(getApplication(), "recording video", Toast.LENGTH_SHORT).show();
-            startRedDotAnimation();
+        if (isGalleryModeOn) {
+            // zeige ja/nein auswahl, if ja -> sende delete
+            LayoutInflater inflater = getLayoutInflater();
+            View dialoglayout = inflater.inflate(R.layout.custom_dialog, null);
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setView(dialoglayout);
+            final AlertDialog dialog = builder.create();
+            dialog.show();
+
+            View cancelButton = dialoglayout.findViewById(R.id.cancel_btn);
+            if (cancelButton != null) {
+                cancelButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if (dialog != null) {
+                            dialog.cancel();
+                        }
+                    }
+                });
+            }
+            View okButton = dialoglayout.findViewById(R.id.ok_btn);
+            if (okButton != null) {
+                okButton.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        sendToPhones(MyConstants.PATH_DELETE_PIC);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Toast.makeText(getApplicationContext(), "deleting picture on phone", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                        if (dialog != null) {
+                            dialog.cancel();
+                        }
+                    }
+                });
+            }
+        } else {
+            if (!animationRunning) {
+                sendToPhones(MyConstants.PATH_TAKE_VID);
+                Toast.makeText(getApplication(), "recording video", Toast.LENGTH_SHORT).show();
+                startRedDotAnimation();
+            }
         }
     }
 
@@ -510,19 +578,33 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                     sendToPhones(MyConstants.PATH_TAKE_PIC);
                 }
             }
+        } else { // gallery mode
+            sendToPhones(MyConstants.PATH_NEXT_PIC);
         }
         return true;
     }
 
     @Override
     public boolean onDoubleTap(MotionEvent e) {
-        //Toast.makeText(getApplication(), "Double Tap", Toast.LENGTH_SHORT).show();
+        if (isGalleryModeOn) {
+            sendToPhones(MyConstants.PATH_PREV_PIC);
+        }
         return false;
     }
 
     @Override
     public boolean onDoubleTapEvent(MotionEvent e) {
         return false;
+    }
+
+    private void deleteOldDataItems() {
+        Uri uri = new Uri.Builder().scheme(PutDataRequest.WEAR_URI_SCHEME).path(MyConstants.PATH_IMAGE).build();
+        Wearable.DataApi.deleteDataItems(mGoogleApiClient, uri).setResultCallback(new ResultCallback<DataApi.DeleteDataItemsResult>() {
+            @Override
+            public void onResult(DataApi.DeleteDataItemsResult deleteDataItemsResult) {
+                Log.d(TAG, "onResult of deleting " + MyConstants.PATH_IMAGE + ": " + deleteDataItemsResult.getStatus().toString());
+            }
+        });
     }
 
     public class ImageAdapter extends GridPagerAdapter implements View.OnTouchListener {
@@ -575,17 +657,10 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
             return view.equals(o);
         }
 
-
         @Override
         public boolean onTouch(View v, MotionEvent event) {
-            if (v == mImageViewCam) {
-                if (gestureDetector.onTouchEvent(event)) {
-                    return true;
-                }
-            } else if (v == mImageViewGallery) {
-                if (gestureDetector.onTouchEvent(event)) {
-                    return true;
-                }
+            if (v == mImageViewCam || v == mImageViewGallery) {
+                return gestureDetector.onTouchEvent(event);
             }
             return false;
         }
