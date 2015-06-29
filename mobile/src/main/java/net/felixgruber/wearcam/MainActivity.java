@@ -28,6 +28,7 @@ import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.Animation;
@@ -126,9 +127,9 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
             public void onClick(View v) {
                 if (!isGalleryModeOn) {
 
-                    if(isRecording){
+                    if (isRecording) {
                         sendToWear(MyConstants.PATH_STOP_RECORDING);
-                    }else{
+                    } else {
                         sendToWear(MyConstants.PATH_START_RECORDING);
                     }
                     takeVideo();
@@ -380,18 +381,19 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         Wearable.MessageApi.removeListener(mGoogleApiClient, this);
     }
 
-    private void deactivateButtons(){
+    private void deactivateButtons() {
         pictureButton.setClickable(false);
         changeCamButton.setClickable(false);
         flashButton.setClickable(false);
     }
-    private void activateButtons(){
+
+    private void activateButtons() {
         pictureButton.setClickable(true);
         changeCamButton.setClickable(true);
         flashButton.setClickable(true);
     }
 
-    private void startUpTimeCounter(){
+    private void startUpTimeCounter() {
 
         counterUpTextView.setVisibility(View.VISIBLE);
 
@@ -401,23 +403,23 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
 
             @Override
             public void run() {
-                while (isRecording){
-                    try{
+                while (isRecording) {
+                    try {
                         Thread.sleep(1000);
-                    }catch (InterruptedException e){
+                    } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                     counterUpTextView.post(new Runnable() {
                         @Override
                         public void run() {
-                            String result = String.format("%02d:%02d", minute , second);
+                            String result = String.format("%02d:%02d", minute, second);
                             counterUpTextView.setText(result);
                         }
                     });
-                    if(second == 59){
+                    if (second == 59) {
                         minute++;
-                        second =0;
-                    }else{
+                        second = 0;
+                    } else {
                         second++;
                     }
                 }
@@ -449,6 +451,25 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
                         angleRotateMatrix = 180;
                     } else if (temp > 225 && temp <= 315) {
                         angleRotateMatrix = 270;
+                    }
+
+                    if (cam != null) {
+                        Camera.Parameters params = cam.getParameters();
+                        Display display = getWindowManager().getDefaultDisplay();
+                        Point size = new Point();
+                        display.getSize(size);
+                        double camRatio = (double) params.getPreviewSize().width / (double) params.getPreviewSize().height;
+                        if (surf != null) {
+                            ViewGroup.LayoutParams surfLayoutParams = surf.getLayoutParams();
+                            if (angleRotateMatrix == 90 || angleRotateMatrix == 270) {// landscape
+                                surfLayoutParams.height = size.y;
+                                surfLayoutParams.width = (int) (size.y * camRatio);
+                            } else if (angleRotateMatrix == 0 || angleRotateMatrix == 180) {//portrait
+                                surfLayoutParams.height = (int) (size.x * camRatio);
+                                surfLayoutParams.width = size.x;
+                            }
+                            surf.setLayoutParams(surfLayoutParams);
+                        }
                     }
                 }
             };
@@ -683,12 +704,6 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
                 cam.setPreviewCallback(this);
                 cam.setPreviewDisplay(mHolder);
                 cam.startPreview();
-                Camera.Parameters params = cam.getParameters();
-                Display display = getWindowManager().getDefaultDisplay();
-                Point size = new Point();
-                display.getSize(size);
-                surf.getLayoutParams().width = size.x;
-                surf.getLayoutParams().height = (int) (size.x * params.getPreviewSize().width / params.getPreviewSize().height);
                 return true;
             } else {
                 return false;
@@ -900,6 +915,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
         int angleToRotate = getRotationAngle(this, currentCameraId);
+
         if (cam != null) {
             cam.setDisplayOrientation(angleToRotate);
         }
