@@ -3,7 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:ads="http://schemas.android.com/apk/res-auto"
     tools:context=".MainActivity">
+
 
     <SurfaceView
         android:id="@+id/surfaceView"
@@ -16,12 +18,11 @@
         android:id="@+id/redDotPhoneImage"
         android:layout_width="200px"
         android:layout_height="200px"
-        android:layout_alignParentEnd="true"
-        android:layout_alignParentRight="true"
-        android:layout_alignParentTop="true"
         android:alpha="0"
         android:src="@mipmap/reddot"
-        android:visibility="visible" />
+        android:visibility="visible"
+        android:layout_below="@+id/adView"
+        android:layout_alignParentEnd="true" />
 
     <LinearLayout
         android:layout_width="wrap_content"
@@ -81,4 +82,17 @@
             android:scaleType="centerInside"
             android:src="@drawable/ic_action_video" />
     </LinearLayout>
+
+
+    <com.google.android.gms.ads.AdView
+        android:id="@+id/adView"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentTop="true"
+        ads:adSize="SMART_BANNER"
+        ads:adUnitId="@string/banner_ad_unit_id">
+    </com.google.android.gms.ads.AdView>
+
+
 </RelativeLayout>

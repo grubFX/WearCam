@@ -335,6 +335,25 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         final String temp = _messageEvent.getPath();
         if (temp.equals(MyConstants.PATH_STOP)) {
             finish();
+        }else if (temp.equals(MyConstants.PATH_START_RECORDING)) {
+            Log.i(TAG,"wear path start recording received");
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    startRedDotAnimation();
+                }
+            });
+
+            //TODO: implement counter here
+        }else if(temp.equals(MyConstants.PATH_STOP_RECORDING)){
+            Log.i(TAG,"wear path stop recording received");
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    stopRedDotAnimation();
+                }
+            });
+            //TODO: implement counter here
         }
     }
 
@@ -555,6 +574,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         if (!isGalleryModeOn) {
             if (animationRunning) {
                 Toast.makeText(getApplication(), "stopping recording", Toast.LENGTH_SHORT).show();
+                sendToPhones(MyConstants.PATH_TAKE_VID);
                 stopRedDotAnimation();
             } else {
 

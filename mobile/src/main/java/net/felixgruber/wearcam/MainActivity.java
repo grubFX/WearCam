@@ -37,6 +37,8 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
@@ -122,7 +124,14 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
             @Override
             public void onClick(View v) {
                 if (!isGalleryModeOn) {
+
+                    if(isRecording){
+                        sendToWear(MyConstants.PATH_STOP_RECORDING);
+                    }else{
+                        sendToWear(MyConstants.PATH_START_RECORDING);
+                    }
                     takeVideo();
+
                 }
             }
         });
@@ -152,6 +161,14 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         imagePaths = utils.getFilePaths();
         mNodeList = new Vector<>();
         index = 0;
+
+
+        //ADVIEW
+        AdView mAdView = (AdView) findViewById(R.id.adView);
+        AdRequest adRequest = new AdRequest.Builder().build();
+
+        mAdView.loadAd(adRequest);
+
     }
 
     void flashLightAction() {

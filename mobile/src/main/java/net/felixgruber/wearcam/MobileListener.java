@@ -19,9 +19,11 @@ public class MobileListener extends WearableListenerService {
         Log.d(TAG, "onMessageReceived: " + messageEvent.getPath());
 
         if (messageEvent.getPath().equals(MyConstants.PATH_START)) {
+            Log.d(TAG, "path equals pathstart,");
             Intent intent = new Intent(this, MainActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NEW_TASK);
             PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+            startActivity(intent);
         }
     }
 }

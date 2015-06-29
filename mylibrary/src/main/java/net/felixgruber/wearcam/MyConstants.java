@@ -15,6 +15,10 @@ public class MyConstants {
     public static final String PATH_GALLERY_IMAGE = "/galleryImage";
     public static final String PATH_DELETE_PIC = "/deletePic";
 
+    //musti hinzugefügt
+    public static final String PATH_START_RECORDING = "/startRecording";
+    public static final String PATH_STOP_RECORDING = "/stopRecording";
+
     public static final String DATA_ITEM_IMAGE = "img";
     public static final String DATA_ITEM_TIMESTAMP = "timestamp";
 
