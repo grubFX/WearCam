@@ -32,7 +32,8 @@
         android:gravity="bottom|center_horizontal"
         android:longClickable="false"
         android:measureWithLargestChild="false"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:id="@+id/linearLayout">
 
         <ImageButton
             android:id="@+id/pictureButton"
@@ -93,6 +94,14 @@
         ads:adSize="SMART_BANNER"
         ads:adUnitId="@string/banner_ad_unit_id">
     </com.google.android.gms.ads.AdView>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:id="@+id/upTimeCounterPhone"
+        android:layout_above="@+id/linearLayout"
+        android:layout_centerHorizontal="true" />
 
 
 </RelativeLayout>

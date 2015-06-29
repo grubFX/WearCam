@@ -35,6 +35,7 @@ import android.view.animation.LinearInterpolator;
 import android.view.animation.ScaleAnimation;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.ads.AdRequest;
@@ -83,7 +84,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     private OrientationEventListener mOrientationEventListener;
     private Utils utils;
     private ArrayList<String> imagePaths = new ArrayList<String>();
-
+    private TextView counterUpTextView;
     // SD card image directory
     public static final String PHOTO_ALBUM = "wearcam";
     // supported file formats
@@ -154,6 +155,9 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
 
         redDotView = (ImageView) findViewById(R.id.redDotPhoneImage);
 
+        counterUpTextView = (TextView) findViewById(R.id.upTimeCounterPhone);
+        counterUpTextView.setVisibility(View.VISIBLE);
+
         setupCam();
         flashButton.setAlpha(0.5f);
         utils = new Utils(this);
@@ -166,7 +170,6 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         //ADVIEW
         AdView mAdView = (AdView) findViewById(R.id.adView);
         AdRequest adRequest = new AdRequest.Builder().build();
-
         mAdView.loadAd(adRequest);
 
     }
@@ -228,6 +231,8 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
             isRecording = false;
             stopRedDotAnimation();
 
+            counterUpTextView.setVisibility(View.INVISIBLE);
+
             Toast.makeText(getApplication(), "Recording stopped!!", Toast.LENGTH_SHORT).show();
             if (isFlashModeOn) {
                 Camera.Parameters p = cam.getParameters();
@@ -252,6 +257,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
                 isRecording = true;
                 startRedDotAnimation();
                 Toast.makeText(getApplication(), "Recording started!!", Toast.LENGTH_SHORT).show();
+                startUpTimeCounter();
             } else {
                 releaseMediaRecorder();
             }
@@ -372,6 +378,51 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         mGoogleApiClient.disconnect();
         Log.d(TAG, "disconnedted,  :( :( :( :( :(!!!!! ");
         Wearable.MessageApi.removeListener(mGoogleApiClient, this);
+    }
+
+    private void deactivateButtons(){
+        pictureButton.setClickable(false);
+        changeCamButton.setClickable(false);
+        flashButton.setClickable(false);
+    }
+    private void activateButtons(){
+        pictureButton.setClickable(true);
+        changeCamButton.setClickable(true);
+        flashButton.setClickable(true);
+    }
+
+    private void startUpTimeCounter(){
+
+        counterUpTextView.setVisibility(View.VISIBLE);
+
+        new Thread(new Runnable() {
+            int second = 0;
+            int minute = 0;
+
+            @Override
+            public void run() {
+                while (isRecording){
+                    try{
+                        Thread.sleep(1000);
+                    }catch (InterruptedException e){
+                        e.printStackTrace();
+                    }
+                    counterUpTextView.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            String result = String.format("%02d:%02d", minute , second);
+                            counterUpTextView.setText(result);
+                        }
+                    });
+                    if(second == 59){
+                        minute++;
+                        second =0;
+                    }else{
+                        second++;
+                    }
+                }
+            }
+        }).start();
     }
 
     @Override

@@ -28,6 +28,7 @@ import android.view.animation.ScaleAnimation;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -75,6 +76,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     public static final List<String> FILE_EXTN = Arrays.asList("jpg", "jpeg", "png");// supported file formats
     private GalleryViewAdapter adapter;
     private ViewPager viewPager;
+    private TextView upTimeTextView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,6 +96,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                 counterBtn = (Button) findViewById(R.id.imageButton3);
                 buttonUp = (Button) findViewById(R.id.button_up);
                 buttonDown = (Button) findViewById(R.id.button_down);
+                upTimeTextView = (TextView) findViewById(R.id.upTimeCounterWear);
                 updateUI();
             }
         });
@@ -129,6 +132,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         anim.setDuration(1000);
         redImageView.startAnimation(anim);
         animationRunning = true;
+        startUpTimeCounter();
     }
 
     void stopRedDotAnimation() {
@@ -136,6 +140,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         redImageView.setAnimation(null);
         redImageView.animate();
         redImageView.setVisibility(ImageView.INVISIBLE);
+        upTimeTextView.setVisibility(View.INVISIBLE);
     }
 
     void updateUI() {
@@ -159,6 +164,9 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         if (buttonDown != null) {
             buttonDown.setVisibility(View.INVISIBLE);
             buttonDown.setEnabled(false);
+        }
+        if(upTimeTextView != null){
+            upTimeTextView.setVisibility(View.INVISIBLE);
         }
     }
 
@@ -629,6 +637,40 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         });
     }
 
+    private void startUpTimeCounter(){
+
+        upTimeTextView.setVisibility(View.VISIBLE);
+
+        new Thread(new Runnable() {
+            int second = 0;
+            int minute = 0;
+
+            @Override
+            public void run() {
+                while (animationRunning){
+                    try{
+                        Thread.sleep(1000);
+                    }catch (InterruptedException e){
+                        e.printStackTrace();
+                    }
+                    upTimeTextView.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            String result = String.format("%02d:%02d", minute , second);
+                            upTimeTextView.setText(result);
+                        }
+                    });
+                    if(second == 59){
+                        minute++;
+                        second =0;
+                    }else{
+                        second++;
+                    }
+                }
+            }
+        }).start();
+    }
+
     public class ImageAdapter extends GridPagerAdapter implements View.OnTouchListener {
         final Context mContext;
 
@@ -686,5 +728,6 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
             }
             return false;
         }
+
     }
 }

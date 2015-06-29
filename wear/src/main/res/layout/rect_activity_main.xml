@@ -71,4 +71,11 @@
         android:id="@+id/button_down"
         android:layout_gravity="center_horizontal|bottom"
         android:background="@drawable/ic_action_down" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:id="@+id/upTimeCounterWear"
+        android:layout_gravity="right|center_vertical" />
 </FrameLayout>
