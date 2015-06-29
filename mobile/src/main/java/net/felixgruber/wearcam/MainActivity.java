@@ -220,7 +220,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         }
         cam.setParameters(p);
         cam.takePicture(this, this, this);
-        Toast.makeText(getApplication(), "Picture saved in \\wearcam", Toast.LENGTH_SHORT).show();
+        Toast.makeText(getApplication(), "Picture saved in Wearcam Folder", Toast.LENGTH_SHORT).show();
     }
 
     void takeVideo() {
@@ -233,7 +233,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
 
             counterUpTextView.setVisibility(View.INVISIBLE);
 
-            Toast.makeText(getApplication(), "Recording stopped!!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getApplication(), "Recording stopped!", Toast.LENGTH_SHORT).show();
             if (isFlashModeOn) {
                 Camera.Parameters p = cam.getParameters();
                 p.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
@@ -256,7 +256,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
                 recorder.start();
                 isRecording = true;
                 startRedDotAnimation();
-                Toast.makeText(getApplication(), "Recording started!!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplication(), "Recording started!", Toast.LENGTH_SHORT).show();
                 startUpTimeCounter();
             } else {
                 releaseMediaRecorder();
@@ -468,7 +468,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     }
 
     private void showErrorDialog(int errorCode) {
-        Toast.makeText(getApplication(), errorCode, Toast.LENGTH_SHORT).show();
+        Log.i(TAG,String.valueOf(errorCode));
     }
 
     @Override
@@ -513,11 +513,13 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
             Bitmap preview = BitmapFactory.decodeByteArray(byteStream.toByteArray(), 0, byteStream.toByteArray().length);
             float ratioBitmap = (float) preview.getWidth() / (float) preview.getHeight();
             int finalWidth = MyConstants.MOBILE_IMG_SIZE, finalHeight = MyConstants.MOBILE_IMG_SIZE;
+
             if (ratioBitmap > 1) {
                 finalWidth = (int) ((float) MyConstants.MOBILE_IMG_SIZE * ratioBitmap);
             } else {
                 finalHeight = (int) ((float) MyConstants.MOBILE_IMG_SIZE / ratioBitmap);
             }
+
             preview = Bitmap.createScaledBitmap(preview, finalWidth, finalHeight, true);
             Matrix m = new Matrix();
             m.postRotate(angleRotateMatrix + anglePreview);
@@ -613,12 +615,6 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         } else if (temp.equals(MyConstants.PATH_DELETE_PIC)) {
             deleteImageFromPhone();
         }
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(getApplicationContext(), temp, Toast.LENGTH_SHORT).show();
-            }
-        });
     }
 
     private void sendStoredImageToPhone() {
@@ -858,6 +854,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         }
         int result;
         if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+
             result = (info.orientation + degrees) % 360;
             result = (360 - result) % 360; // compensate the mirror
         } else { // back-facing
@@ -922,9 +919,14 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         if (data != null) {
             int angleToRotate = getRotationAngle(MainActivity.this, currentCameraId);
             Bitmap orignalImage = BitmapFactory.decodeByteArray(data, 0, data.length);
-            // TODO: front camera portrait picture is reverted
-            Bitmap bitmap = rotate(orignalImage, angleToRotate);
 
+            if(currentCameraId == Camera.CameraInfo.CAMERA_FACING_FRONT){
+                if(angleToRotate == 90){
+                    angleToRotate = 270;
+                }
+            }
+
+            Bitmap bitmap = rotate(orignalImage, angleToRotate);
             if (bitmap != null) {
 
                 File file = new File(Environment.getExternalStorageDirectory() + "/Wearcam");

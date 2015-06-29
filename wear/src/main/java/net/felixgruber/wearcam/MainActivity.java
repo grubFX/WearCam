@@ -94,8 +94,6 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                 imgBtn1 = (ImageButton) findViewById(R.id.imageButton1);
                 imgBtn2 = (ImageButton) findViewById(R.id.imageButton2);
                 counterBtn = (Button) findViewById(R.id.imageButton3);
-                buttonUp = (Button) findViewById(R.id.button_up);
-                buttonDown = (Button) findViewById(R.id.button_down);
                 upTimeTextView = (TextView) findViewById(R.id.upTimeCounterWear);
                 updateUI();
             }
@@ -385,7 +383,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(getApplicationContext(), "flash toggled", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), "Flash toggled", Toast.LENGTH_SHORT).show();
                         /* wenn user am handy aufm flash button drückt is des verkehrt, darum auskommentiert
                         if (flashOn) {
                             Toast.makeText(getApplicationContext(), "Flash off", Toast.LENGTH_SHORT).show();
@@ -487,19 +485,15 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
 
     @Override
     public boolean onDown(MotionEvent e) {
-        //Toast.makeText(getApplication(),"onDown",Toast.LENGTH_SHORT).show();
         return true;
     }
 
     @Override
     public void onShowPress(MotionEvent e) {
-        //Toast.makeText(getApplication(),"onShowpress",Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public boolean onSingleTapUp(MotionEvent e) {
-        //Toast.makeText(getApplication(),"onSingleTapup",Toast.LENGTH_SHORT).show();
-        //after releasing single tap gesture
         return true;
     }
 
@@ -544,7 +538,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                         runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                Toast.makeText(getApplicationContext(), "deleting picture on phone", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(getApplicationContext(), "Picture deleting..", Toast.LENGTH_SHORT).show();
                             }
                         });
                         if (dialog != null) {
@@ -556,7 +550,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         } else {
             if (!animationRunning) {
                 sendToPhones(MyConstants.PATH_TAKE_VID);
-                Toast.makeText(getApplication(), "recording video", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplication(), "Recording video", Toast.LENGTH_SHORT).show();
                 startRedDotAnimation();
             }
         }
@@ -581,7 +575,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     public boolean onSingleTapConfirmed(MotionEvent e) {
         if (!isGalleryModeOn) {
             if (animationRunning) {
-                Toast.makeText(getApplication(), "stopping recording", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplication(), "Stopping recording", Toast.LENGTH_SHORT).show();
                 sendToPhones(MyConstants.PATH_TAKE_VID);
                 stopRedDotAnimation();
             } else {
@@ -604,7 +598,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                         }
                     }.start();
                 } else {
-                    Toast.makeText(getApplication(), "taking a picture", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplication(), "Picture taken", Toast.LENGTH_SHORT).show();
                     sendToPhones(MyConstants.PATH_TAKE_PIC);
                 }
             }

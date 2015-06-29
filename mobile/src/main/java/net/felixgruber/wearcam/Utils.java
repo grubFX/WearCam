@@ -72,8 +72,9 @@ public class Utils {
                 Toast.makeText(
                         _context,
                         PHOTO_ALBUM
-                                + " is empty. Please load some images in it !",
+                                + " is created now. You can find all your media there!",
                         Toast.LENGTH_LONG).show();
+
             }
 
         } else {

@@ -32,7 +32,6 @@
             android:configChanges="orientation|screenSize"
             android:label="@string/app_name"
             android:launchMode="singleInstance"
-            android:screenOrientation="portrait"
             android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
