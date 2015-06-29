@@ -4,7 +4,7 @@ android {
     compileSdkVersion 22
     buildToolsVersion '23.0.0 rc2'
     defaultConfig {
-        applicationId "mc.fhooe.at.wearcam"
+        applicationId "net.felixgruber.www.wearcam"
         minSdkVersion 21
         targetSdkVersion 22
         versionCode 1
@@ -26,4 +26,5 @@ dependencies {
     compile 'com.google.android.gms:play-services-ads:7.3.0'
     compile 'com.google.android.support:wearable:+'
     compile 'com.google.android.gms:play-services-wearable:+'
+    wearApp project(':wear')
 }
