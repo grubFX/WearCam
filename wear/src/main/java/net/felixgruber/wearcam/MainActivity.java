@@ -406,13 +406,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
                 }
                 break;
 
-            case R.id.button_up:
-                sendToPhones(MyConstants.PATH_NEXT_PIC);
-                break;
 
-            case R.id.button_down:
-                sendToPhones(MyConstants.PATH_PREV_PIC);
-                break;
         }
     }
 

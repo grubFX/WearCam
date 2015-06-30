@@ -24,5 +24,5 @@ public class MyConstants {
     public static final String DATA_ITEM_TIMESTAMP = "timestamp";
 
     public static final int MOBILE_IMG_SIZE = 200;
-    public static final int MOBILE_IMAGE_QUALITIY_IN_PERCENT = 20;
+    public static final int MOBILE_IMAGE_QUALITIY_IN_PERCENT = 10;
 }

@@ -395,7 +395,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
 
         counterUpTextView.setVisibility(View.VISIBLE);
 
-        new Thread(new Runnable() {
+         new Thread(new Runnable() {
             int second = 0;
             int minute = 0;
 
@@ -527,62 +527,62 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         final Camera camera = _camera;
         final byte[] data = _data;
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                if (!isGalleryModeOn && camera != null) {
-                    int[] rgb = decodeYUV420SP(data, camera.getParameters().getPreviewSize().width, camera.getParameters().getPreviewSize().height);
-                    Bitmap preview = Bitmap.createBitmap(rgb, camera.getParameters().getPreviewSize().width, camera.getParameters().getPreviewSize().height, Bitmap.Config.ARGB_8888);
-                    float ratioBitmap = (float) preview.getWidth() / (float) preview.getHeight();
-                    int finalWidth = MyConstants.MOBILE_IMG_SIZE, finalHeight = MyConstants.MOBILE_IMG_SIZE;
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    if (!isGalleryModeOn && camera != null) {
+                        int[] rgb = decodeYUV420SP(data, camera.getParameters().getPreviewSize().width, camera.getParameters().getPreviewSize().height);
+                        Bitmap preview = Bitmap.createBitmap(rgb, camera.getParameters().getPreviewSize().width, camera.getParameters().getPreviewSize().height, Bitmap.Config.ARGB_8888);
+                        float ratioBitmap = (float) preview.getWidth() / (float) preview.getHeight();
+                        int finalWidth = MyConstants.MOBILE_IMG_SIZE, finalHeight = MyConstants.MOBILE_IMG_SIZE;
 
-                    if (ratioBitmap > 1) {
-                        finalWidth = (int) ((float) MyConstants.MOBILE_IMG_SIZE * ratioBitmap);
-                    } else {
-                        finalHeight = (int) ((float) MyConstants.MOBILE_IMG_SIZE / ratioBitmap);
-                    }
+                        if (ratioBitmap > 1) {
+                            finalWidth = (int) ((float) MyConstants.MOBILE_IMG_SIZE * ratioBitmap);
+                        } else {
+                            finalHeight = (int) ((float) MyConstants.MOBILE_IMG_SIZE / ratioBitmap);
+                        }
 
-                    preview = Bitmap.createScaledBitmap(preview, finalWidth, finalHeight, true);
-                    Matrix m = new Matrix();
-                    m.postRotate(angleRotateMatrix + anglePreview);
-                    preview = Bitmap.createBitmap(preview, 0, 0, preview.getWidth(), preview.getHeight(), m, true);
-                    Asset asset = null;
-                    ByteArrayOutputStream byteStream = null;
-                    try {
-                        byteStream = new ByteArrayOutputStream();
-                        preview.compress(Bitmap.CompressFormat.WEBP, MyConstants.MOBILE_IMAGE_QUALITIY_IN_PERCENT, byteStream);
-                        asset = Asset.createFromBytes(byteStream.toByteArray());
-                    } finally {
-                        if (byteStream != null) {
-                            try {
-                                byteStream.close();
-                            } catch (IOException e) {
-                                // ignore
+                        preview = Bitmap.createScaledBitmap(preview, finalWidth, finalHeight, true);
+                        Matrix m = new Matrix();
+                        m.postRotate(angleRotateMatrix + anglePreview);
+                        preview = Bitmap.createBitmap(preview, 0, 0, preview.getWidth(), preview.getHeight(), m, true);
+                        Asset asset = null;
+                        ByteArrayOutputStream byteStream = null;
+                        try {
+                            byteStream = new ByteArrayOutputStream();
+                            preview.compress(Bitmap.CompressFormat.WEBP, MyConstants.MOBILE_IMAGE_QUALITIY_IN_PERCENT, byteStream);
+                            asset = Asset.createFromBytes(byteStream.toByteArray());
+                        } finally {
+                            if (byteStream != null) {
+                                try {
+                                    byteStream.close();
+                                } catch (IOException e) {
+                                    // ignore
+                                }
                             }
                         }
-                    }
-                    if (asset != null) {
-                        PutDataMapRequest dataMap = PutDataMapRequest.create(MyConstants.PATH_IMAGE);
-                        dataMap.getDataMap().putLong(MyConstants.DATA_ITEM_TIMESTAMP, System.currentTimeMillis());
-                        dataMap.getDataMap().putAsset(MyConstants.DATA_ITEM_IMAGE, asset);
-                        PutDataRequest request = dataMap.asPutDataRequest();
+                        if (asset != null) {
+                            PutDataMapRequest dataMap = PutDataMapRequest.create(MyConstants.PATH_IMAGE);
+                            dataMap.getDataMap().putLong(MyConstants.DATA_ITEM_TIMESTAMP, System.currentTimeMillis());
+                            dataMap.getDataMap().putAsset(MyConstants.DATA_ITEM_IMAGE, asset);
+                            PutDataRequest request = dataMap.asPutDataRequest();
 
-                        PendingResult<DataApi.DataItemResult> pendingResult = Wearable.DataApi
-                                .putDataItem(mGoogleApiClient, request);
-                        pendingResult.setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
-                            @Override
-                            public void onResult(DataApi.DataItemResult dataItemResult) {
-                                //Log.d(TAG, "onResult of sending data: " + dataItemResult.getStatus());
-                            }
-                        });
+                            PendingResult<DataApi.DataItemResult> pendingResult = Wearable.DataApi
+                                    .putDataItem(mGoogleApiClient, request);
+                            pendingResult.setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+                                @Override
+                                public void onResult(DataApi.DataItemResult dataItemResult) {
+                                    //Log.d(TAG, "onResult of sending data: " + dataItemResult.getStatus());
+                                }
+                            });
+                        }
+                    } else {
+                        Log.w(TAG, "compression didn't work");
                     }
-                } else {
-                    Log.w(TAG, "compression didn't work");
                 }
             }
+            ).run();
         }
-        ).run();
-    }
 
     @Override
     public void onMessageReceived(MessageEvent messageEvent) {
@@ -595,6 +595,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
             changeView();
 
         } else if (temp.equals(MyConstants.PATH_GALLERY)) {
+
             imagePaths = utils.getFilePaths();
             index = index % imagePaths.size();
             isGalleryModeOn = true;
@@ -670,9 +671,11 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
                 recorder.stop();
                 isRecording = false;
             }
+            mOrientationEventListener.disable();
             destroyCam();
         } else {
             setupCam();
+            mOrientationEventListener.enable();
         }
     }
 
