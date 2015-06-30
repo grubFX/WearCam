@@ -88,6 +88,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     private ArrayList<String> imagePaths = new ArrayList<String>();
     private TextView counterUpTextView;
     public static final List<String> FILE_EXTN = Arrays.asList("jpg", "jpeg", "png");
+    private Thread t;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -395,7 +396,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
 
         counterUpTextView.setVisibility(View.VISIBLE);
 
-         new Thread(new Runnable() {
+        new Thread(new Runnable() {
             int second = 0;
             int minute = 0;
 
@@ -527,7 +528,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         final Camera camera = _camera;
         final byte[] data = _data;
 
-            new Thread(new Runnable() {
+            t = new Thread(new Runnable() {
                 @Override
                 public void run() {
                     if (!isGalleryModeOn && camera != null) {
@@ -572,7 +573,6 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
                             pendingResult.setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
                                 @Override
                                 public void onResult(DataApi.DataItemResult dataItemResult) {
-                                    //Log.d(TAG, "onResult of sending data: " + dataItemResult.getStatus());
                                 }
                             });
                         }
@@ -581,8 +581,14 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
                     }
                 }
             }
-            ).run();
+            );
+
+            if(camera != null){
+                t.run();
+            }
+
         }
+
 
     @Override
     public void onMessageReceived(MessageEvent messageEvent) {
@@ -597,7 +603,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         } else if (temp.equals(MyConstants.PATH_GALLERY)) {
 
             imagePaths = utils.getFilePaths();
-            index = index % imagePaths.size();
+            index = 0;
             isGalleryModeOn = true;
             changeView();
             sendStoredImageToPhone();
@@ -671,8 +677,10 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
                 recorder.stop();
                 isRecording = false;
             }
-            mOrientationEventListener.disable();
             destroyCam();
+            t.stop();
+            mOrientationEventListener.disable();
+            //destroyCam();
         } else {
             setupCam();
             mOrientationEventListener.enable();
