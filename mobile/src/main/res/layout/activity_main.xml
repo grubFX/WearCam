@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:ads="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:ads="http://schemas.android.com/apk/res-auto"
     tools:context=".MainActivity">
 
 
@@ -18,70 +18,107 @@
         android:id="@+id/redDotPhoneImage"
         android:layout_width="200px"
         android:layout_height="200px"
+        android:layout_alignParentEnd="true"
+        android:layout_below="@+id/adView"
         android:alpha="0"
         android:src="@mipmap/reddot"
-        android:visibility="visible"
-        android:layout_below="@+id/adView"
-        android:layout_alignParentEnd="true" />
+        android:visibility="visible" />
 
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:id="@+id/linearLayout"
+        android:layout_width="fill_parent"
         android:layout_height="50dp"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
+        android:background="#449256"
         android:gravity="bottom|center_horizontal"
         android:longClickable="false"
         android:measureWithLargestChild="false"
-        android:orientation="horizontal"
-        android:id="@+id/linearLayout">
+        android:orientation="horizontal">
 
-        <ImageButton
-            android:id="@+id/pictureButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:baselineAlignBottom="true"
-            android:cropToPadding="false"
-            android:longClickable="false"
-            android:maxWidth="50dp"
-            android:nestedScrollingEnabled="false"
-            android:scaleType="centerInside"
-            android:src="@drawable/ic_action_camera" />
+            android:clickable="false"
+            android:orientation="vertical">
 
-        <ImageButton
-            android:id="@+id/flashlightButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
-            android:layout_weight="1"
-            android:baselineAlignBottom="true"
-            android:maxWidth="50dp"
-            android:scaleType="centerInside"
-            android:src="@drawable/ic_action_flash_on" />
+            <ImageButton
+                android:id="@+id/pictureButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:layout_weight="1"
+                android:background="#449256"
+                android:baselineAlignBottom="true"
+                android:cropToPadding="false"
+                android:longClickable="false"
+                android:maxWidth="50dp"
+                android:nestedScrollingEnabled="false"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_action_camera" />
+        </LinearLayout>
 
-        <ImageButton
-            android:id="@+id/changeCameraButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:baselineAlignBottom="true"
-            android:maxWidth="50dp"
-            android:scaleType="centerInside"
-            android:src="@drawable/ic_action_switch_camera" />
+            android:clickable="false"
+            android:orientation="vertical">
 
-        <ImageButton
-            android:id="@+id/videoButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom"
+            <ImageButton
+                android:id="@+id/flashlightButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:layout_weight="1"
+                android:background="#449256"
+                android:baselineAlignBottom="true"
+                android:maxWidth="50dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_action_flash_on" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:baselineAlignBottom="true"
-            android:longClickable="false"
-            android:maxWidth="50dp"
-            android:scaleType="centerInside"
-            android:src="@drawable/ic_action_video" />
+            android:clickable="false"
+            android:orientation="vertical">
+
+            <ImageButton
+                android:id="@+id/changeCameraButton"
+                android:layout_width="wrap_content"
+                android:background="#449256"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:layout_weight="1"
+                android:baselineAlignBottom="true"
+                android:maxWidth="50dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_action_switch_camera" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:clickable="false"
+            android:orientation="vertical">
+
+            <ImageButton
+                android:id="@+id/videoButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:background="#449256"
+                android:layout_weight="1"
+                android:baselineAlignBottom="true"
+                android:longClickable="false"
+                android:maxWidth="50dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_action_video" />
+        </LinearLayout>
     </LinearLayout>
 
 
@@ -89,19 +126,18 @@
         android:id="@+id/adView"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
         android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
         ads:adSize="SMART_BANNER"
-        ads:adUnitId="@string/banner_ad_unit_id">
-    </com.google.android.gms.ads.AdView>
+        ads:adUnitId="@string/banner_ad_unit_id"></com.google.android.gms.ads.AdView>
 
     <TextView
+        android:id="@+id/upTimeCounterPhone"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:id="@+id/upTimeCounterPhone"
         android:layout_above="@+id/linearLayout"
-        android:layout_centerHorizontal="true" />
+        android:layout_centerHorizontal="true"
+        android:textAppearance="?android:attr/textAppearanceSmall" />
 
 
 </RelativeLayout>

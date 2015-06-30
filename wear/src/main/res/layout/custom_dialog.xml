@@ -36,7 +36,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="right|bottom"
                 android:src="@android:drawable/ic_menu_delete"
-                app:circle_color="@color/green"
+                app:circle_color="#449256"
                 app:circle_radius="25dp"
                 app:circle_radius_pressed="20dp"
                 android:layout_margin="25dp"

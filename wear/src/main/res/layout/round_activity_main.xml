@@ -67,12 +67,4 @@
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true" />
 
-    <Button
-        style="?android:attr/buttonStyleSmall"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:id="@+id/button_down"
-        android:background="@drawable/ic_action_down"
-        android:layout_alignParentBottom="true"
-        android:layout_alignStart="@+id/imageButton3" />
 </RelativeLayout>
