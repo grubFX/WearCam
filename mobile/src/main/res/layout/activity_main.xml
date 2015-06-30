@@ -89,10 +89,10 @@
             <ImageButton
                 android:id="@+id/changeCameraButton"
                 android:layout_width="wrap_content"
-                android:background="#449256"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom"
                 android:layout_weight="1"
+                android:background="#449256"
                 android:baselineAlignBottom="true"
                 android:maxWidth="50dp"
                 android:scaleType="centerInside"
@@ -111,8 +111,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom"
-                android:background="#449256"
                 android:layout_weight="1"
+                android:background="#449256"
                 android:baselineAlignBottom="true"
                 android:longClickable="false"
                 android:maxWidth="50dp"
@@ -129,7 +129,7 @@
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
         ads:adSize="SMART_BANNER"
-        ads:adUnitId="@string/banner_ad_unit_id"></com.google.android.gms.ads.AdView>
+        ads:adUnitId="@string/banner_ad_unit_id"/>
 
     <TextView
         android:id="@+id/upTimeCounterPhone"

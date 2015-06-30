@@ -61,6 +61,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -530,68 +531,57 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
             @Override
             public void run() {
                 if (!isGalleryModeOn && camera != null) {
-                    final byte[] arr = data.clone();
-                    YuvImage temp = new YuvImage(arr, camera.getParameters().getPreviewFormat(), camera.getParameters().getPictureSize().width, camera.getParameters().getPictureSize().height, null);
-                    ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+                    int[] rgb = decodeYUV420SP(data, camera.getParameters().getPreviewSize().width, camera.getParameters().getPreviewSize().height);
+                    Bitmap preview = Bitmap.createBitmap(rgb, camera.getParameters().getPreviewSize().width, camera.getParameters().getPreviewSize().height, Bitmap.Config.ARGB_8888);
+                    float ratioBitmap = (float) preview.getWidth() / (float) preview.getHeight();
+                    int finalWidth = MyConstants.MOBILE_IMG_SIZE, finalHeight = MyConstants.MOBILE_IMG_SIZE;
 
-                    boolean compressionWorked = false;
+                    if (ratioBitmap > 1) {
+                        finalWidth = (int) ((float) MyConstants.MOBILE_IMG_SIZE * ratioBitmap);
+                    } else {
+                        finalHeight = (int) ((float) MyConstants.MOBILE_IMG_SIZE / ratioBitmap);
+                    }
+
+                    preview = Bitmap.createScaledBitmap(preview, finalWidth, finalHeight, true);
+                    Matrix m = new Matrix();
+                    m.postRotate(angleRotateMatrix + anglePreview);
+                    preview = Bitmap.createBitmap(preview, 0, 0, preview.getWidth(), preview.getHeight(), m, true);
+                    Asset asset = null;
+                    ByteArrayOutputStream byteStream = null;
                     try {
-                        compressionWorked = temp.compressToJpeg(new Rect(0, 0, temp.getWidth(), temp.getHeight()), MyConstants.MOBILE_IMAGE_QUALITIY_IN_PERCENT, byteStream);
-                    } catch (Exception _e) {
-                        Log.e(TAG, "exception while compressing to JPG");
+                        byteStream = new ByteArrayOutputStream();
+                        preview.compress(Bitmap.CompressFormat.WEBP, MyConstants.MOBILE_IMAGE_QUALITIY_IN_PERCENT, byteStream);
+                        asset = Asset.createFromBytes(byteStream.toByteArray());
                     } finally {
-                        if (compressionWorked) {
-                            Bitmap preview = BitmapFactory.decodeByteArray(byteStream.toByteArray(), 0, byteStream.toByteArray().length);
-                            float ratioBitmap = (float) preview.getWidth() / (float) preview.getHeight();
-                            int finalWidth = MyConstants.MOBILE_IMG_SIZE, finalHeight = MyConstants.MOBILE_IMG_SIZE;
-
-                            if (ratioBitmap > 1) {
-                                finalWidth = (int) ((float) MyConstants.MOBILE_IMG_SIZE * ratioBitmap);
-                            } else {
-                                finalHeight = (int) ((float) MyConstants.MOBILE_IMG_SIZE / ratioBitmap);
-                            }
-
-                            preview = Bitmap.createScaledBitmap(preview, finalWidth, finalHeight, true);
-                            Matrix m = new Matrix();
-                            m.postRotate(angleRotateMatrix + anglePreview);
-                            preview = Bitmap.createBitmap(preview, 0, 0, preview.getWidth(), preview.getHeight(), m, true);
-                            Asset asset = null;
-                            byteStream = null;
+                        if (byteStream != null) {
                             try {
-                                byteStream = new ByteArrayOutputStream();
-                                preview.compress(Bitmap.CompressFormat.WEBP, MyConstants.MOBILE_IMAGE_QUALITIY_IN_PERCENT, byteStream);
-                                asset = Asset.createFromBytes(byteStream.toByteArray());
-                            } finally {
-                                if (byteStream != null) {
-                                    try {
-                                        byteStream.close();
-                                    } catch (IOException e) {
-                                        // ignore
-                                    }
-                                }
+                                byteStream.close();
+                            } catch (IOException e) {
+                                // ignore
                             }
-                            if (asset != null) {
-                                PutDataMapRequest dataMap = PutDataMapRequest.create(MyConstants.PATH_IMAGE);
-                                dataMap.getDataMap().putLong(MyConstants.DATA_ITEM_TIMESTAMP, System.currentTimeMillis());
-                                dataMap.getDataMap().putAsset(MyConstants.DATA_ITEM_IMAGE, asset);
-                                PutDataRequest request = dataMap.asPutDataRequest();
-
-                                PendingResult<DataApi.DataItemResult> pendingResult = Wearable.DataApi
-                                        .putDataItem(mGoogleApiClient, request);
-                                pendingResult.setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
-                                    @Override
-                                    public void onResult(DataApi.DataItemResult dataItemResult) {
-                                        //Log.d(TAG, "onResult of sending data: " + dataItemResult.getStatus());
-                                    }
-                                });
-                            }
-                        } else {
-                            Log.w(TAG, "compression didn't work");
                         }
                     }
+                    if (asset != null) {
+                        PutDataMapRequest dataMap = PutDataMapRequest.create(MyConstants.PATH_IMAGE);
+                        dataMap.getDataMap().putLong(MyConstants.DATA_ITEM_TIMESTAMP, System.currentTimeMillis());
+                        dataMap.getDataMap().putAsset(MyConstants.DATA_ITEM_IMAGE, asset);
+                        PutDataRequest request = dataMap.asPutDataRequest();
+
+                        PendingResult<DataApi.DataItemResult> pendingResult = Wearable.DataApi
+                                .putDataItem(mGoogleApiClient, request);
+                        pendingResult.setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+                            @Override
+                            public void onResult(DataApi.DataItemResult dataItemResult) {
+                                //Log.d(TAG, "onResult of sending data: " + dataItemResult.getStatus());
+                            }
+                        });
+                    }
+                } else {
+                    Log.w(TAG, "compression didn't work");
                 }
             }
-        }).run();
+        }
+        ).run();
     }
 
     @Override
@@ -1008,5 +998,33 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
             imagePaths = utils.getFilePaths();
             sendStoredImageToPhone();
         }
+    }
+
+    public int[] decodeYUV420SP(byte[] yuv420sp, int width, int height) {
+        final int frameSize = width * height;
+        int rgb[] = new int[width * height];
+        for (int j = 0, yp = 0; j < height; j++) {
+            int uvp = frameSize + (j >> 1) * width, u = 0, v = 0;
+            for (int i = 0; i < width; i++, yp++) {
+                int y = (0xff & ((int) yuv420sp[yp])) - 16;
+                if (y < 0) y = 0;
+                if ((i & 1) == 0) {
+                    v = (0xff & yuv420sp[uvp++]) - 128;
+                    u = (0xff & yuv420sp[uvp++]) - 128;
+                }
+                int y1192 = 1192 * y;
+                int r = (y1192 + 1634 * v);
+                int g = (y1192 - 833 * v - 400 * u);
+                int b = (y1192 + 2066 * u);
+                if (r < 0) r = 0;
+                else if (r > 262143) r = 262143;
+                if (g < 0) g = 0;
+                else if (g > 262143) g = 262143;
+                if (b < 0) b = 0;
+                else if (b > 262143) b = 262143;
+                rgb[yp] = 0xff000000 | ((r << 6) & 0xff0000) | ((g >> 2) & 0xff00) | ((b >> 10) & 0xff);
+            }
+        }
+        return rgb;
     }
 }
