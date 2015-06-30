@@ -72,7 +72,6 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     private ImageView redImageView;
     private ViewGroup container;
     private LayoutInflater inflater;
-    public static final String PHOTO_ALBUM = "wearcam"; // SD card image directory
     public static final List<String> FILE_EXTN = Arrays.asList("jpg", "jpeg", "png");// supported file formats
     private GalleryViewAdapter adapter;
     private ViewPager viewPager;

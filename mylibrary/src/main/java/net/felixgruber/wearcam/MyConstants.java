@@ -14,6 +14,7 @@ public class MyConstants {
     public static final String PATH_IMAGE = "/image";
     public static final String PATH_GALLERY_IMAGE = "/galleryImage";
     public static final String PATH_DELETE_PIC = "/deletePic";
+    public static final String PATH_STORAGE_PHONE = "/wearcam";
 
     //musti hinzugefügt
     public static final String PATH_START_RECORDING = "/startRecording";

@@ -3,6 +3,7 @@ package net.felixgruber.wearcam;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Point;
+import android.util.Log;
 import android.view.Display;
 import android.view.WindowManager;
 import android.widget.Toast;
@@ -24,13 +25,9 @@ public class Utils {
     // Gridview image padding
     public static final int GRID_PADDING = 8; // in dp
 
-    // SD card image directory
-    public static final String PHOTO_ALBUM = "wearcam";
-
     // supported file formats
     public static final List<String> FILE_EXTN = Arrays.asList("jpg", "jpeg",
             "png");
-
 
     private Context _context;
 
@@ -44,8 +41,12 @@ public class Utils {
         ArrayList<String> filePaths = new ArrayList<String>();
 
         File directory = new File(
-                android.os.Environment.getExternalStorageDirectory()
-                        + File.separator + PHOTO_ALBUM);
+                android.os.Environment.getExternalStorageDirectory()+ MyConstants.PATH_STORAGE_PHONE);
+        if (!directory.isDirectory()) {
+            directory.mkdir();
+        }
+
+        Log.i("TAG", directory.getPath());
 
         // check for directory
         if (directory.isDirectory()) {
@@ -71,7 +72,7 @@ public class Utils {
                 // image directory is empty
                 Toast.makeText(
                         _context,
-                        PHOTO_ALBUM
+                        MyConstants.PATH_STORAGE_PHONE
                                 + " is created now. You can find all your media there!",
                         Toast.LENGTH_LONG).show();
 
@@ -80,7 +81,7 @@ public class Utils {
         } else {
             AlertDialog.Builder alert = new AlertDialog.Builder(_context);
             alert.setTitle("Error!");
-            alert.setMessage(PHOTO_ALBUM
+            alert.setMessage(MyConstants.PATH_STORAGE_PHONE
                     + " directory path is not valid! Please set the image directory name AppConstant.java class");
             alert.setPositiveButton("OK", null);
             alert.show();

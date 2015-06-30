@@ -86,9 +86,6 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     private Utils utils;
     private ArrayList<String> imagePaths = new ArrayList<String>();
     private TextView counterUpTextView;
-    // SD card image directory
-    public static final String PHOTO_ALBUM = "wearcam";
-    // supported file formats
     public static final List<String> FILE_EXTN = Arrays.asList("jpg", "jpeg", "png");
 
     @Override
@@ -133,7 +130,6 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
                         sendToWear(MyConstants.PATH_START_RECORDING);
                     }
                     takeVideo();
-
                 }
             }
         });
@@ -167,12 +163,10 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         mNodeList = new Vector<>();
         index = 0;
 
-
         //ADVIEW
         AdView mAdView = (AdView) findViewById(R.id.adView);
         AdRequest adRequest = new AdRequest.Builder().build();
         mAdView.loadAd(adRequest);
-
     }
 
     void flashLightAction() {
@@ -188,10 +182,12 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
     void changeCamera() {
         deleteOldDataItems();
         destroyCam();
-        if (currentCameraId == Camera.CameraInfo.CAMERA_FACING_BACK)
+        if (currentCameraId == Camera.CameraInfo.CAMERA_FACING_BACK) {
             currentCameraId = Camera.CameraInfo.CAMERA_FACING_FRONT;
-        else {
+            flashButton.setClickable(false);
+        } else {
             currentCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
+            flashButton.setClickable(true);
         }
         setupCam();
     }
@@ -233,8 +229,9 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
             stopRedDotAnimation();
 
             counterUpTextView.setVisibility(View.INVISIBLE);
-
+            counterUpTextView.setText("00:00");
             Toast.makeText(getApplication(), "Recording stopped!", Toast.LENGTH_SHORT).show();
+
             if (isFlashModeOn) {
                 Camera.Parameters p = cam.getParameters();
                 p.setFlashMode(Camera.Parameters.FLASH_MODE_OFF);
@@ -292,7 +289,7 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
         recorder.setProfile(CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH));
 
         path = Environment.getExternalStorageDirectory().getAbsolutePath()
-                + "/wearcam/" + System.currentTimeMillis() + ".mp4";
+                + MyConstants.PATH_STORAGE_PHONE + "/"  + System.currentTimeMillis() + ".mp4";
         // Step 4: Set output file
         recorder.setOutputFile(path);
 
@@ -945,12 +942,12 @@ public class MainActivity extends Activity implements DataApi.DataListener, Goog
             Bitmap bitmap = rotate(orignalImage, angleToRotate);
             if (bitmap != null) {
 
-                File file = new File(Environment.getExternalStorageDirectory() + "/Wearcam");
+                File file = new File(Environment.getExternalStorageDirectory() + MyConstants.PATH_STORAGE_PHONE);
                 if (!file.isDirectory()) {
                     file.mkdir();
                 }
 
-                file = new File(Environment.getExternalStorageDirectory() + "/Wearcam", System.currentTimeMillis() + ".jpg");
+                file = new File(Environment.getExternalStorageDirectory() + MyConstants.PATH_STORAGE_PHONE, System.currentTimeMillis() + ".jpg");
 
                 try {
                     FileOutputStream fileOutputStream = new FileOutputStream(file);
