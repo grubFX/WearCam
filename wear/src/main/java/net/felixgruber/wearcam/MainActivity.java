@@ -64,7 +64,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
     private Uri uri;
     private Vector<Node> mNodeList;
     private ImageButton imgBtn1 = null, imgBtn2 = null;
-    private Button counterBtn = null, buttonUp = null, buttonDown = null;
+    private Button counterBtn = null;
     private GridViewPager pager;
     private DotsPageIndicator dots;
     private int column = 2, row = 1, clockCounter = 0;
@@ -155,14 +155,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
         if (counterBtn != null) {
             counterBtn.setOnClickListener(this);
         }
-        if (buttonUp != null) {
-            buttonUp.setVisibility(View.INVISIBLE);
-            buttonUp.setEnabled(false);
-        }
-        if (buttonDown != null) {
-            buttonDown.setVisibility(View.INVISIBLE);
-            buttonDown.setEnabled(false);
-        }
+
         if(upTimeTextView != null){
             upTimeTextView.setVisibility(View.INVISIBLE);
         }
@@ -454,10 +447,7 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
             imgBtn2.setVisibility(View.VISIBLE);
             counterBtn.setActivated(true);
             counterBtn.setVisibility(View.VISIBLE);
-            buttonUp.setActivated(false);
-            buttonUp.setVisibility(View.INVISIBLE);
-            buttonDown.setActivated(false);
-            buttonDown.setVisibility(View.INVISIBLE);
+
         } else if (i == 0 && i1 == 1) {
             isGalleryModeOn = true;
             sendToPhones(MyConstants.PATH_GALLERY);
@@ -468,14 +458,6 @@ public class MainActivity extends Activity implements GoogleApiClient.Connection
             counterBtn.setActivated(false);
             counterBtn.setVisibility(View.INVISIBLE);
 
-            /*
-            buttonUp.setActivated(true);
-            buttonUp.setVisibility(View.VISIBLE);
-            buttonUp.setOnClickListener(this);
-            buttonDown.setActivated(true);
-            buttonDown.setVisibility(View.VISIBLE);
-            buttonDown.setOnClickListener(this);
-            */
         }
     }
 
